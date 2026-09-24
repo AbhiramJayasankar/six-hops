@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -13,7 +15,7 @@ def login_form(request: Request):
 
 
 @router.post("/login")
-def login(request: Request, password: str = Form(...)):
+def login(request: Request, password: Annotated[str, Form()]):
     if not check_password(request.app.state.settings, password):
         return templates.TemplateResponse(
             request, "login.html", {"error": "Wrong password."}, status_code=401
