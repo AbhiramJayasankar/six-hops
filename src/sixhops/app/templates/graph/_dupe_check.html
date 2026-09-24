@@ -1,0 +1,25 @@
+{% if check %}
+<div class="dupe-check" role="alert">
+  <h3>Is {{ check.name }} already in your graph?</h3>
+  <ul class="dupe-list">
+    {% for node, score, reason in check.matches %}
+    <li>
+      {% if check.use_field %}
+      <form hx-post="{{ root }}{{ check.action }}" hx-target="#panel">
+        {% for k, v in check.fields.items() %}{% if k != check.use_field and k != "confirm_new" %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+        <input type="hidden" name="{{ check.use_field }}" value="{{ node.name }} (#{{ node.id }})">
+        <button type="submit" class="secondary">Use {{ node.name }}</button>
+      </form>
+      {% else %}
+      <a href="#" hx-get="{{ root }}/ui/node/{{ node.id }}" hx-target="#panel" data-select-node="{{ node.id }}">Open {{ node.name }}</a>
+      {% endif %}
+      <span class="muted small">{{ reason|capitalize }} ({{ (score * 100)|round|int }}% match)</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <form hx-post="{{ root }}{{ check.action }}" hx-target="#panel">
+    {% for k, v in check.fields.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <button type="submit">Add {{ check.name }} as someone new</button>
+  </form>
+</div>
+{% endif %}

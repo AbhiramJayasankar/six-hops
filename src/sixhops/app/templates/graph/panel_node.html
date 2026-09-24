@@ -1,5 +1,6 @@
 {% include "graph/_messages.html" %}
 {% include "graph/_datalists.html" %}
+{% include "graph/_dupe_check.html" %}
 <a href="#" class="back" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>Back to overview</a>
 <section>
   <h2>{{ node.name }} <span class="kind kind-{{ node.kind }}">{{ "You" if node.kind == "me" else node.kind|capitalize }}</span></h2>

@@ -1,0 +1,22 @@
+<a href="#" class="back" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>Back to overview</a>
+<section>
+  <h2>Possible duplicates</h2>
+  {% if not pairs %}
+  <p>No likely duplicates. Entries are compared by name, other names, LinkedIn URL and email.</p>
+  {% else %}
+  <p class="muted small">Merging moves every connection onto the entry you keep, and adds the other name as an alternative name. You can undo a merge.</p>
+  <ul class="dupe-pairs">
+    {% for keep, drop, d in pairs %}
+    <li>
+      <p><strong>{{ drop.name }}</strong> and <strong>{{ keep.name }}</strong> <span class="kind kind-{{ keep.kind }}">{{ "You" if keep.kind == "me" else keep.kind|capitalize }}</span></p>
+      <p class="muted small">{{ d.reason|capitalize }} ({{ (d.score * 100)|round|int }}% match)</p>
+      <form hx-post="{{ root }}/ui/node/{{ keep.id }}/merge" hx-target="#panel"
+            hx-confirm="Merge {{ drop.name }} into {{ keep.name }}? You can undo this.">
+        <input type="hidden" name="other" value="{{ drop.name }} (#{{ drop.id }})">
+        <button type="submit" class="secondary">Merge {{ drop.name }} into {{ keep.name }}</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>

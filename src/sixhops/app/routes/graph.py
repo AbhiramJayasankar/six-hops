@@ -11,7 +11,14 @@ from pydantic import ValidationError
 
 from sixhops.app.routes.api import Graph
 from sixhops.app.services.graph import GraphDocument, GraphService
-from sixhops.app.services.manual import EDGE_TEXT, connect_ops, node_label, other_name, pick_node
+from sixhops.app.services.manual import (
+    EDGE_TEXT,
+    connect_ops,
+    connect_target_kinds,
+    node_label,
+    other_name,
+    pick_node,
+)
 from sixhops.app.templating import templates
 from sixhops.core.model import PEOPLE, GraphSnapshot
 from sixhops.core.ops import (
@@ -27,6 +34,7 @@ from sixhops.core.ops import (
     UpdateEdge,
     UpdateNode,
 )
+from sixhops.core.resolve import candidates, find_duplicates
 from sixhops.ports.graph_store import NothingToUndo, VersionConflict
 
 router = APIRouter()
@@ -54,6 +62,11 @@ def node_panel(request: Request, node_id: str, graph: Graph):
     return _node(request, graph.snapshot(), node_id)
 
 
+@router.get("/ui/duplicates", response_class=HTML)
+def duplicates_panel(request: Request, graph: Graph):
+    return _duplicates(request, graph.snapshot())
+
+
 @router.get("/ui/edge/{edge_id}", response_class=HTML)
 def edge_panel(request: Request, edge_id: str, graph: Graph):
     return _edge(request, graph.snapshot(), edge_id)
@@ -70,7 +83,16 @@ def create_node(
     name: Annotated[str, Form()],
     knows_me: Annotated[bool, Form()] = False,
     strength: Annotated[int, Form()] = 3,
+    confirm_new: Annotated[bool, Form()] = False,
 ):
+    g = graph.snapshot()
+    if not confirm_new and (check := _duplicate_check(g, name, kind)):
+        fields = {"kind": kind, "name": name, "strength": strength, "confirm_new": "true"}
+        if knows_me:
+            fields["knows_me"] = "true"
+        check |= {"action": "/ui/node", "fields": fields, "use_field": None}
+        return _home(request, g, graph, check=check)
+
     def ops(g: GraphSnapshot) -> list[Op]:
         created: list[Op] = [CreateNode(key="new", kind=kind, name=name.strip())]
         if knows_me and kind == "person":
@@ -123,7 +145,18 @@ def connect(
     other: Annotated[str, Form()],
     strength: Annotated[int, Form()] = 3,
     note: Annotated[str, Form()] = "",
+    confirm_new: Annotated[bool, Form()] = False,
 ):
+    g = graph.snapshot()
+    if (
+        not confirm_new
+        and node_id in g.nodes
+        and (check := _connect_check(g, node_id, kind, other))
+    ):
+        fields = {"kind": kind, "other": other, "strength": strength, "note": note,
+                  "confirm_new": "true"}  # fmt: skip
+        check |= {"action": f"/ui/node/{node_id}/connect", "fields": fields, "use_field": "other"}
+        return _node(request, g, node_id, check=check)
     return _write(
         request,
         graph,
@@ -252,7 +285,37 @@ def _changed(response: HTMLResponse, select: str = "") -> HTMLResponse:
     return response
 
 
-def _home(request, g: GraphSnapshot, graph, errors=None, flash=None):
+def _duplicate_check(g: GraphSnapshot, name: str, kind: str) -> dict | None:
+    """Existing nodes a new entry might duplicate, for the "is this someone you have?" prompt."""
+    if kind not in ("person", "company", "school") or not name.strip():
+        return None
+    found = candidates(g, name.strip(), kind)
+    if not found:
+        return None
+    return {
+        "name": name.strip(),
+        "matches": [(g.nodes[c.node_id], c.score, c.reason) for c in found],
+    }
+
+
+def _connect_check(g: GraphSnapshot, node_id: str, kind: str, other: str) -> dict | None:
+    """Like _duplicate_check, for the "connect to a new name" path of the connect form."""
+    try:
+        kinds = connect_target_kinds(g.nodes[node_id], kind)
+        if pick_node(g, other, kinds):
+            return None  # an existing node was picked: nothing new is created
+    except (InvalidOps, KeyError):
+        return None  # connect_ops reports the error itself
+    new_kind = "person" if "person" in kinds else next(iter(kinds))
+    return _duplicate_check(g, other_name(other), new_kind)
+
+
+def _duplicates(request, g: GraphSnapshot):
+    pairs = [(g.nodes[d.keep_id], g.nodes[d.drop_id], d) for d in find_duplicates(g)]
+    return templates.TemplateResponse(request, "graph/panel_duplicates.html", {"pairs": pairs})
+
+
+def _home(request, g: GraphSnapshot, graph, errors=None, flash=None, check=None):
     counts = {
         k: sum(1 for n in g.nodes.values() if n.kind == k) for k in ("person", "company", "school")
     }
@@ -266,11 +329,12 @@ def _home(request, g: GraphSnapshot, graph, errors=None, flash=None):
             "errors": errors or [],
             "flash": flash,
             "node_options": _options(g),
+            "check": check,
         },
     )
 
 
-def _node(request, g: GraphSnapshot, node_id: str, errors=None, flash=None):
+def _node(request, g: GraphSnapshot, node_id: str, errors=None, flash=None, check=None):
     node = g.nodes.get(node_id)
     if node is None:
         return HTMLResponse('<p class="muted">That node no longer exists.</p>')
@@ -287,6 +351,7 @@ def _node(request, g: GraphSnapshot, node_id: str, errors=None, flash=None):
             "flash": flash,
             "node_options": _options(g),
             "is_person": node.kind in PEOPLE,
+            "check": check,
         },
     )
 

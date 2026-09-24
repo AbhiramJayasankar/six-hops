@@ -317,3 +317,15 @@ th, td { padding: 0.55rem 0.5rem 0.55rem 0; border-bottom: 1px solid var(--rule)
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* --- duplicate prompts -------------------------------------------------------------------- */
+
+.dupe-check { border-left: 4px solid var(--company); background: var(--paper); padding: 0.75rem;
+  border-radius: var(--radius-s); margin-bottom: 1rem; }
+.dupe-check h3 { margin-top: 0; }
+.dupe-list, .dupe-pairs { list-style: none; padding: 0; margin: 0 0 0.75rem; }
+.dupe-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem;
+  padding: 0.35rem 0; }
+.dupe-list form { margin: 0; }
+.dupe-pairs li { border-bottom: 1px solid var(--rule); padding: 0.6rem 0; }
+.dupe-pairs p { margin: 0 0 0.3rem; }

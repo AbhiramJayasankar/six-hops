@@ -1,10 +1,12 @@
 {% include "graph/_messages.html" %}
 {% include "graph/_datalists.html" %}
+{% include "graph/_dupe_check.html" %}
 <section>
   <h2>Your network</h2>
   {% set n_people, n_companies, n_schools, n_edges = counts.person, counts.company, counts.school, g.edges|length %}
   <p class="summary-line num">{{ n_people }} {{ "person" if n_people == 1 else "people" }}, {{ n_companies }} compan{{ "y" if n_companies == 1 else "ies" }} and {{ n_schools }} school{{ "" if n_schools == 1 else "s" }}, with {{ n_edges }} connection{{ "" if n_edges == 1 else "s" }}.
     {% if n_edges %}Select anything on the map to see or edit it.{% endif %}</p>
+  {% if n_people + n_companies + n_schools > 1 %}<p class="small"><a href="#" hx-get="{{ root }}/ui/duplicates" hx-target="#panel">Check for duplicates</a></p>{% endif %}
 </section>
 
 <section>

@@ -76,7 +76,7 @@ def test_edit_edge_and_switch_to_worked_at(authed):
 
 def test_merge_delete_and_undo_from_panel(authed):
     authed.post("/ui/node", data={"kind": "person", "name": "Priya", "knows_me": "true"})
-    authed.post("/ui/node", data={"kind": "person", "name": "Priya S"})
+    authed.post("/ui/node", data={"kind": "person", "name": "Priya S", "confirm_new": "true"})
     g = graph(authed)
     keep, drop = by_name(g, "Priya S"), by_name(g, "Priya")
 
@@ -126,3 +126,64 @@ def test_bad_form_values_render_errors_not_500(authed):
     assert resp.status_code == 200 and "alert error" in resp.text
     resp = authed.post("/ui/node", data={"kind": "planet", "name": "Pluto"})
     assert resp.status_code == 200 and "alert error" in resp.text
+
+
+def test_adding_a_likely_duplicate_asks_first(authed):
+    authed.post("/ui/node", data={"kind": "person", "name": "Priya Sharma"})
+    resp = authed.post("/ui/node", data={"kind": "person", "name": "Priya S", "knows_me": "true"})
+    assert "Is Priya S already in your graph?" in resp.text
+    assert "Open Priya Sharma" in resp.text and "Surname initial matches" in resp.text
+    assert "HX-Trigger" not in resp.headers
+    assert len(graph(authed)["nodes"]) == 2  # nothing created yet
+
+    resp = authed.post(
+        "/ui/node",
+        data={"kind": "person", "name": "Priya S", "knows_me": "true", "confirm_new": "true"},
+    )
+    assert "HX-Trigger" in resp.headers
+    assert len(graph(authed)["nodes"]) == 3
+
+
+def test_connecting_to_a_near_duplicate_offers_the_existing_node(authed):
+    authed.post("/ui/node", data={"kind": "company", "name": "Razorpay"})
+    authed.post("/ui/node", data={"kind": "person", "name": "Rahul"})
+    rahul = by_name(graph(authed), "Rahul")
+    resp = authed.post(
+        f"/ui/node/{rahul['id']}/connect",
+        data={"kind": "WORKS_AT", "other": "Razorpay Software Pvt Ltd"},
+    )
+    assert "Use Razorpay" in resp.text
+    assert len(graph(authed)["nodes"]) == 3
+
+    rzp = by_name(graph(authed), "Razorpay")
+    authed.post(
+        f"/ui/node/{rahul['id']}/connect",
+        data={"kind": "WORKS_AT", "other": f"Razorpay (#{rzp['id']})"},
+    )
+    g = graph(authed)
+    assert len(g["nodes"]) == 3
+    assert [e["dst"] for e in g["edges"].values()] == [rzp["id"]]
+
+
+def test_duplicates_panel_lists_and_merges(authed):
+    authed.post("/ui/node", data={"kind": "school", "name": "IIT Madras"})
+    authed.post(
+        "/ui/node",
+        data={
+            "kind": "school",
+            "name": "Indian Institute of Technology Madras",
+            "confirm_new": "true",
+        },
+    )
+    html = authed.get("/ui/duplicates").text
+    assert "Acronym of the full name" in html
+    g = graph(authed)
+    keep, drop = by_name(g, "IIT Madras"), by_name(g, "Indian Institute of Technology Madras")
+    pair = {keep["id"], drop["id"]}
+    import re
+
+    form = re.search(r'hx-post="/ui/node/(\w+)/merge".*?value="[^"]*\(#(\w+)\)"', html, re.S)
+    assert {form.group(1), form.group(2)} == pair
+    authed.post(f"/ui/node/{form.group(1)}/merge", data={"other": f"x (#{form.group(2)})"})
+    assert len([n for n in graph(authed)["nodes"].values() if n["kind"] == "school"]) == 1
+    assert "No likely duplicates" in authed.get("/ui/duplicates").text

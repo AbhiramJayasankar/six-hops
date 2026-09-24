@@ -66,6 +66,17 @@ def pick_node(g: GraphSnapshot, text: str, kinds: set[str]) -> Node | None:
     return matches[0] if matches else None
 
 
+def connect_target_kinds(node: Node, kind: str) -> set[str]:
+    """Kinds the other end of a new `kind` edge from `node` may have."""
+    if node.kind in INSTITUTIONS:
+        if kind == "KNOWS":
+            raise InvalidOps(
+                [f"a {node.kind} can't KNOW someone; add a person who works or studied there"]
+            )
+        return {"person", "me"}
+    return {"person", "me"} if kind == "KNOWS" else {_OTHER_KIND[kind]}
+
+
 def connect_ops(
     g: GraphSnapshot, node_id: str, kind: str, other_text: str, strength: int, note: str
 ) -> list[Op]:
@@ -76,11 +87,7 @@ def connect_ops(
         raise InvalidOps(["enter who or what to connect to"])
 
     from_institution = node.kind in INSTITUTIONS
-    if from_institution and kind == "KNOWS":
-        raise InvalidOps(
-            [f"a {node.kind} can't KNOW someone; add a person who works or studied there"]
-        )
-    other_kinds = {"person", "me"} if from_institution or kind == "KNOWS" else {_OTHER_KIND[kind]}
+    other_kinds = connect_target_kinds(node, kind)
 
     ops: list[Op] = []
     other = pick_node(g, other_text, other_kinds)
