@@ -10,6 +10,13 @@
   <div class="canvas-tools">
     <input id="find-node" list="find-options" placeholder="Find a node…" aria-label="Find a node">
     <datalist id="find-options"></datalist>
+    <form id="reach" class="reach" hx-get="{{ root }}/ui/paths" hx-target="#panel">
+      <input name="target" list="company-options" placeholder="Reach a company…" aria-label="Company to reach" required autocomplete="off">
+      <datalist id="company-options"></datalist>
+      <label class="toggle" title="Treat a shared company or school as a weak tie"><input type="checkbox" name="via_institutions" value="true"> via shared employers/schools</label>
+      <button type="submit">Find paths</button>
+    </form>
+    <span class="spacer"></span>
     <button class="secondary" id="fit">Fit</button>
     <button class="secondary" id="relayout">Re-layout</button>
   </div>

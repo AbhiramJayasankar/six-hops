@@ -4,7 +4,29 @@ A personal job-hunt app for one user. You maintain a network graph of people, co
 schools, and 6hops finds the warmest path from you to any company. Jobs, Cold Email and Study
 pages hang off that graph.
 
-See [`docs/PLAN.md`](docs/PLAN.md) for the full v1 plan and milestone status.
+See [`docs/PLAN.md`](docs/PLAN.md) for the full v1 plan and milestones.
+
+**Status:** M0–M4 done (skeleton, core, SQLite store with undo, graph UI, path queries).
+Next: M5 entity resolution, M6 LinkedIn import, M7 LLM chat. Jobs, Cold Email and Study are stubs.
+
+## Using the graph page
+
+- **Add** people, companies and schools from the side panel; tick "I know them" to link to you.
+- **Click** a node or connection to edit it, connect it to others (existing or new), merge a
+  duplicate into it, or delete it. Every change can be undone from the Overview panel.
+- **Reach a company**: type a company in the toolbar and press *Find paths*. You get the
+  strongest and shortest paths from you (up to 4 hops; *Show longer paths* goes to 6), who to
+  ask first, and the path highlighted on the graph. Tick *via shared employers/schools* to
+  count a shared company or school as a weak tie.
+- **Import/export** the whole graph as JSON from the Overview panel. Import replaces the graph
+  and can be undone.
+
+### Path ranking
+
+Each connection has a strength from 1 to 5, mapped to a weight
+(1: 0.20, 2: 0.40, 3: 0.60, 4: 0.80, 5: 0.95). A path's score is the product of its weights.
+A former employee (WORKED_AT) counts half as much as a current one. A shared company or
+school, when enabled, is a weak tie worth 0.3. "Strongest" ranks by score; "shortest" by hops.
 
 ## Setup
 
@@ -34,6 +56,21 @@ make fmt       # auto-fix
 
 CI (GitHub Actions) runs lint and tests on every push.
 
+## API
+
+All endpoints need the session cookie or `Authorization: Bearer $API_TOKEN`.
+Interactive docs at `/api/docs`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/graph` | Whole graph snapshot |
+| POST | `/api/ops` | Apply a list of ops (`create_node`, `update_node`, `merge_nodes`, `create_edge`, `update_edge`, `delete_node`, `delete_edge`) |
+| GET | `/api/history` | Recent changes |
+| POST | `/api/undo` | Undo the last change |
+| GET | `/api/graph/export` | Download the graph as JSON |
+| POST | `/api/graph/import` | Replace the graph from a JSON file (multipart `file`) |
+| GET | `/api/paths?target=<company id>&max_hops=4&via_institutions=false` | Ranked paths |
+
 ## Environment variables
 
 | Variable | Required | Purpose |
@@ -57,7 +94,8 @@ CI (GitHub Actions) runs lint and tests on every push.
 
 ```
 src/sixhops/
-  core/       pure domain logic: model, ops, validation, compile (+undo), resolution, paths
+  core/       pure domain logic: model, ops, validation, compile (+undo), paths
+              (entity resolution and planning arrive in M5)
   ports/      small Protocol interfaces: LLMProvider, GraphStore, JobSource
   adapters/   implementations of the ports (SQLite store, Gemini, ...)
   app/        FastAPI routes, templates (Jinja2 + HTMX), static assets, wiring

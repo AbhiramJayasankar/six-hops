@@ -109,10 +109,25 @@
   }
 
   function fillFinder(g) {
-    const list = document.getElementById("find-options");
-    list.replaceChildren(...Object.values(g.nodes)
+    const options = (nodes) => nodes
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map((n) => Object.assign(document.createElement("option"), { value: `${n.name} (#${n.id})` })));
+      .map((n) => Object.assign(document.createElement("option"), { value: `${n.name} (#${n.id})` }));
+    const nodes = Object.values(g.nodes);
+    document.getElementById("find-options").replaceChildren(...options(nodes));
+    document.getElementById("company-options")
+      .replaceChildren(...options(nodes.filter((n) => n.kind === "company")));
+  }
+
+  function highlightPath(item) {
+    cy.elements().removeClass("on-path faded");
+    panel.querySelectorAll(".path.active").forEach((p) => p.classList.remove("active"));
+    if (!item) return;
+    item.classList.add("active");
+    const ids = [...item.dataset.pathNodes.split(","), ...item.dataset.pathEdges.split(",")];
+    const onPath = cy.collection(ids.map((id) => cy.getElementById(id)).filter((e) => e.nonempty()));
+    cy.elements().not(onPath).addClass("faded");
+    onPath.addClass("on-path");
+    cy.animate({ fit: { eles: onPath, padding: 80 }, duration: 300 });
   }
 
   const openPanel = (url) => htmx.ajax("GET", url, { target: panel, swap: "innerHTML" });
@@ -123,14 +138,24 @@
     if (evt.target === cy) { cy.elements().unselect(); openPanel(panel.getAttribute("hx-get")); }
   });
   cy.on("dragfree", "node", savePositions);
-  panel.addEventListener("htmx:afterSwap", () => { panel.scrollTop = 0; });
+  panel.addEventListener("htmx:afterSwap", () => {
+    panel.scrollTop = 0;
+    highlightPath(panel.querySelector(".path"));  // first (best) path, or clear
+  });
 
   document.body.addEventListener("graph-changed", (evt) => refresh(evt.detail && evt.detail.select));
   panel.addEventListener("click", (evt) => {
+    const path = evt.target.closest(".path");
+    if (path) { highlightPath(path); return; }
     const link = evt.target.closest("[data-select-node], [data-select-edge], [data-deselect]");
     if (!link) return;
     if (link.hasAttribute("data-deselect")) cy.elements().unselect();
     else select(link.dataset.selectNode || link.dataset.selectEdge);
+  });
+
+  panel.addEventListener("keydown", (evt) => {
+    const path = evt.target.closest(".path");
+    if (path && (evt.key === "Enter" || evt.key === " ")) { evt.preventDefault(); highlightPath(path); }
   });
 
   document.getElementById("find-node").addEventListener("change", (evt) => {

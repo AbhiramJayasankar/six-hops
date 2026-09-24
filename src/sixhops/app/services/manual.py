@@ -16,6 +16,14 @@ _OTHER_KIND = {
 }
 
 
+EDGE_TEXT = {
+    "KNOWS": "knows",
+    "WORKS_AT": "works at",
+    "WORKED_AT": "worked at",
+    "STUDIED_AT": "studied at",
+}
+
+
 def node_label(node: Node) -> str:
     """How a node appears in pickers; `pick_node` parses it back."""
     return f"{node.name} (#{node.id})"

@@ -1,0 +1,66 @@
+{% include "graph/_messages.html" %}
+<p><a href="#" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>← Overview</a></p>
+{% if not company %}
+  <h2>Reach a company</h2>
+  {% if query %}<p>No company called <strong>{{ query }}</strong> in your graph.</p>{% endif %}
+  {% if suggestions %}
+  <p>Did you mean:</p>
+  <ul>{% for c in suggestions %}
+    <li><a href="#" hx-get="{{ root }}/ui/paths?target={{ (c.name ~ ' (#' ~ c.id ~ ')')|urlencode }}&via_institutions={{ via_institutions|lower }}" hx-target="#panel">{{ c.name }}</a></li>
+  {% endfor %}</ul>
+  {% endif %}
+{% else %}
+  <h2>Paths to {{ company.name }}</h2>
+  <p class="muted small">Up to {{ max_hops }} hops{% if via_institutions %}, including shared employers/schools as weak ties{% endif %}. {{ result.people_at_target }} {{ "person" if result.people_at_target == 1 else "people" }} in your graph {{ "is" if result.people_at_target == 1 else "are" }} at {{ company.name }}.</p>
+
+  {% set longer_url = root ~ "/ui/paths?target=" ~ ((company.name ~ " (#" ~ company.id ~ ")")|urlencode) ~ "&max_hops=" ~ hard_max ~ "&via_institutions=" ~ (via_institutions|lower) %}
+  {% set via_url = root ~ "/ui/paths?target=" ~ ((company.name ~ " (#" ~ company.id ~ ")")|urlencode) ~ "&max_hops=" ~ max_hops ~ "&via_institutions=true" %}
+
+  {% if not views %}
+    <div class="card">
+    {% if result.people_at_target == 0 %}
+      <p>Nobody in your graph works or worked at {{ company.name }} yet.</p>
+    {% elif result.min_hops is none %}
+      <p>{{ result.people_at_target }} {{ "person" if result.people_at_target == 1 else "people" }} at {{ company.name }}, but none connected to you.</p>
+      {% if not via_institutions %}<p><a href="#" hx-get="{{ via_url }}" hx-target="#panel">Try via shared employers/schools</a></p>{% endif %}
+    {% elif result.min_hops > hard_max %}
+      <p>The nearest path is {{ result.min_hops }} hops, beyond the {{ hard_max }}-hop limit.</p>
+    {% else %}
+      <p>No path within {{ max_hops }} hops. The nearest is {{ result.min_hops }} hops.</p>
+      <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths (up to {{ hard_max }} hops)</button>
+    {% endif %}
+    </div>
+  {% else %}
+    <ol class="paths">
+    {% for v in views %}
+      <li class="path{% if loop.first %} active{% endif %}" tabindex="0" data-path-nodes="{{ v.path.nodes|join(',') }}" data-path-edges="{{ v.path.edges|join(',') }}">
+        <div class="path-head">
+          <span class="score" title="Product of edge strengths along the path">{{ (v.path.score * 100)|round|int }}%</span>
+          <span class="muted small">{{ v.path.hops }} hop{{ "" if v.path.hops == 1 else "s" }}</span>
+          {% for tag in v.path.tags|sort %}<span class="badge">{{ tag }}</span>{% endfor %}
+        </div>
+        <ol class="steps">
+          <li class="step-node"><strong>{{ v.start.name }}</strong></li>
+          {% for hop in v.hops %}
+          <li class="step-edge"><span class="edge-kind">{{ hop.kind_text }}</span> · {{ hop.edge.strength }}/5{% if hop.edge.note %} · <span class="muted">{{ hop.edge.note }}</span>{% endif %}</li>
+          <li class="step-node"><strong>{{ hop.to.name }}</strong></li>
+          {% endfor %}
+        </ol>
+        <p class="small ask">
+          {% if not v.first_hop %}You're directly connected to {{ company.name }}.
+          {% else %}
+            {% if v.shared %}Reach out to <strong>{{ v.first_hop.name }}</strong> (shared: {{ v.shared.name }}){% else %}Ask <strong>{{ v.first_hop.name }}</strong>{% endif %}
+            {%- if v.first_hop.id != v.referrer.id %} for an intro to <strong>{{ v.referrer.name }}</strong>.{% else %} for a referral.{% endif %}
+          {% endif %}
+        </p>
+      </li>
+    {% endfor %}
+    </ol>
+    {% if max_hops < hard_max %}
+      <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths (up to {{ hard_max }} hops)</button>
+    {% endif %}
+    {% if not via_institutions %}
+      <p class="small"><a href="#" hx-get="{{ via_url }}" hx-target="#panel">Also consider shared employers/schools</a></p>
+    {% endif %}
+  {% endif %}
+{% endif %}

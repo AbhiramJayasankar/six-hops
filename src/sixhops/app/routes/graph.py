@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from sixhops.app.routes.api import Graph
 from sixhops.app.services.graph import GraphDocument, GraphService
-from sixhops.app.services.manual import connect_ops, node_label, other_name, pick_node
+from sixhops.app.services.manual import EDGE_TEXT, connect_ops, node_label, other_name, pick_node
 from sixhops.app.templating import templates
 from sixhops.core.model import PEOPLE, GraphSnapshot
 from sixhops.core.ops import (
@@ -33,12 +33,6 @@ router = APIRouter()
 HTML = HTMLResponse
 
 PERSON_ATTRS = ("title", "email", "linkedin")
-_KIND_TEXT = {
-    "KNOWS": "knows",
-    "WORKS_AT": "works at",
-    "WORKED_AT": "worked at",
-    "STUDIED_AT": "studied at",
-}
 INSTITUTION_ATTRS = ("domain",)
 
 
@@ -134,7 +128,7 @@ def connect(
         request,
         graph,
         lambda g: connect_ops(g, node_id, kind, other, strength, note),
-        lambda g: f"{g.nodes[node_id].name}: {_KIND_TEXT.get(kind, kind)} {other_name(other)}",
+        lambda g: f"{g.nodes[node_id].name}: {EDGE_TEXT.get(kind, kind)} {other_name(other)}",
         show=node_id,
     )
 
@@ -316,7 +310,7 @@ def _edge(request, g: GraphSnapshot, edge_id: str, errors=None, flash=None):
 
 def _edge_text(g: GraphSnapshot, edge_id: str) -> str:
     e = g.edges[edge_id]
-    return f"{g.nodes[e.src].name} {_KIND_TEXT[e.kind]} {g.nodes[e.dst].name}"
+    return f"{g.nodes[e.src].name} {EDGE_TEXT[e.kind]} {g.nodes[e.dst].name}"
 
 
 def _options(g: GraphSnapshot) -> dict[str, list[str]]:
