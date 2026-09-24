@@ -3,15 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>6hops · Log in</title>
+  <title>Log in to 6hops</title>
   <link rel="icon" href="{{ root }}/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="{{ root }}/static/app.css">
 </head>
 <body class="login">
-  <form method="post" action="{{ root }}/login" class="card login-card">
-    <h1>6hops</h1>
-    <label>Password <input type="password" name="password" autofocus required></label>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ root }}/login" class="login-card">
+    <h1 class="wordmark">{% include "_wordmark.html" %}</h1>
+    <p>Your network, and the warmest way into any company.</p>
+    <label>Password <input type="password" name="password" autocomplete="current-password" autofocus required></label>
+    {% if error %}<div class="alert error" role="alert">That password didn't match. Check it and try again.</div>{% endif %}
     <button type="submit">Log in</button>
   </form>
 </body>

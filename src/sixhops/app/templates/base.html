@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}6hops{% endblock %}</title>
   <link rel="icon" href="{{ root }}/static/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="{{ root }}/static/fonts/overpass-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ root }}/static/app.css">
   <script src="{{ root }}/static/vendor/htmx-2.0.11.min.js" defer></script>
   {% block head %}{% endblock %}
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ root }}/">6hops</a>
-    <nav>
+    <a class="wordmark" href="{{ root }}/">{% include "_wordmark.html" %}</a>
+    <nav aria-label="Main">
       <a href="{{ root }}/" {% if active == "graph" %}aria-current="page"{% endif %}>Graph</a>
       <a href="{{ root }}/jobs" {% if active == "jobs" %}aria-current="page"{% endif %}>Jobs</a>
-      <a href="{{ root }}/email" {% if active == "email" %}aria-current="page"{% endif %}>Cold Email</a>
+      <a href="{{ root }}/email" {% if active == "email" %}aria-current="page"{% endif %}>Cold email</a>
       <a href="{{ root }}/study" {% if active == "study" %}aria-current="page"{% endif %}>Study</a>
     </nav>
     <form method="post" action="{{ root }}/logout"><button class="link">Log out</button></form>

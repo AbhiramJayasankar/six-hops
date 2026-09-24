@@ -1,19 +1,20 @@
 {% extends "_stub.html" %}
-{% block title %}6hops · Cold Email{% endblock %}
-{% block heading %}Cold Email{% endblock %}
-{% block lead %}Draft outreach to someone in your graph, using the path that connects you.{% endblock %}
+{% block title %}Cold email · 6hops{% endblock %}
+{% block heading %}Cold email{% endblock %}
+{% block lead %}Draft an intro request or a direct note to someone in your graph, written from the path that connects you.{% endblock %}
 {% block todo %}
-<ul class="todo">
-  <li>TODO: pick a target person (or a company, then its best referrer from <code>core.paths.rank()</code>).</li>
-  <li>TODO: build a context block from the path: first hop, edge notes, shared institutions.</li>
-  <li>TODO: draft via <code>LLMProvider.text()</code>; variants for intro request vs. direct ask.</li>
-  <li>TODO: save drafts and log "contacted" on the person node.</li>
+<ul class="planned">
+  <li>TODO: pick a person, or a company and then its best referrer from <code>core.paths.rank()</code>.</li>
+  <li>TODO: build context from the path: who to ask first, connection notes, shared employers and schools.</li>
+  <li>TODO: draft with <code>LLMProvider.text()</code>, with variants for an intro request and a direct ask.</li>
+  <li>TODO: save drafts and mark a person as contacted.</li>
 </ul>
 {% endblock %}
 {% block placeholder %}
-<section class="card placeholder">
-  <label>To <input disabled placeholder="Select a person from your graph"></label>
-  <label>Draft <textarea disabled rows="6" placeholder="Draft will appear here"></textarea></label>
+<section class="preview" aria-disabled="true">
+  <h2>Preview</h2>
+  <label>To <input disabled placeholder="Choose someone from your graph"></label>
+  <label>Draft <textarea disabled rows="5" placeholder="Your draft appears here"></textarea></label>
   <button disabled>Draft email</button>
 </section>
 {% endblock %}

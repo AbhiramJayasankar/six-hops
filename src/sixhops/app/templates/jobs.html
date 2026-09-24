@@ -1,21 +1,22 @@
 {% extends "_stub.html" %}
-{% block title %}6hops · Jobs{% endblock %}
+{% block title %}Jobs · 6hops{% endblock %}
 {% block heading %}Jobs{% endblock %}
-{% block lead %}Aggregated listings, matched against your resume, with the people in your graph who can refer you.{% endblock %}
+{% block lead %}Listings from job boards, matched against your resume, each showing who in your graph can refer you.{% endblock %}
 {% block todo %}
-<ul class="todo">
-  <li>TODO: <code>JobSource</code> adapters (port: <code>sixhops/ports/job_source.py</code>), e.g. Greenhouse/Lever board APIs, Adzuna, RemoteOK.</li>
-  <li>TODO: dedupe postings across sources by (company, title, location).</li>
-  <li>TODO: resume upload and a match score per job (LLM via <code>LLMProvider</code>, structured output).</li>
-  <li>TODO: "who can refer me" overlay: call <code>core.paths.rank()</code> for each job's company.</li>
-  <li>TODO: saved searches and application status tracking.</li>
+<ul class="planned">
+  <li>TODO: <code>JobSource</code> adapters (port in <code>sixhops/ports/job_source.py</code>), for example Greenhouse and Lever board APIs, Adzuna, RemoteOK.</li>
+  <li>TODO: merge duplicate postings across sources by company, title and location.</li>
+  <li>TODO: resume upload and a match score per job, via <code>LLMProvider</code> structured output.</li>
+  <li>TODO: "who can refer me" on each job, using <code>core.paths.rank()</code> for the job's company.</li>
+  <li>TODO: saved searches and application status.</li>
 </ul>
 {% endblock %}
 {% block placeholder %}
-<section class="card placeholder">
+<section class="preview" aria-disabled="true">
+  <h2>Preview</h2>
   <table>
     <thead><tr><th>Role</th><th>Company</th><th>Match</th><th>Warmest referrer</th></tr></thead>
-    <tbody><tr><td colspan="4" class="muted">No job sources configured yet.</td></tr></tbody>
+    <tbody><tr><td colspan="4" class="muted">Jobs appear here once a job source is connected.</td></tr></tbody>
   </table>
 </section>
 {% endblock %}

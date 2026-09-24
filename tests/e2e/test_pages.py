@@ -20,7 +20,7 @@ def test_wrong_password_rejected(client):
     [
         ("/", "Graph"),
         ("/jobs", "Jobs"),
-        ("/email", "Cold Email"),
+        ("/email", "Cold email"),
         ("/study", "Study"),
     ],
 )

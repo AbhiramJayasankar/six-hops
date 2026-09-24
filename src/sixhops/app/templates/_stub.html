@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{% block heading %}{% endblock %} <span class="badge">stub</span></h1>
-<p class="lead">{% block lead %}{% endblock %}</p>
-<section class="card">
+<header>
+  <h1>{% block heading %}{% endblock %}<span class="status">Not built yet</span></h1>
+  <p class="lead">{% block lead %}{% endblock %}</p>
+</header>
+<section class="section">
   <h2>Planned</h2>
   {% block todo %}{% endblock %}
 </section>

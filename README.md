@@ -28,6 +28,15 @@ Each connection has a strength from 1 to 5, mapped to a weight
 A former employee (WORKED_AT) counts half as much as a current one. A shared company or
 school, when enabled, is a weak tie worth 0.3. "Strongest" ranks by score; "shortest" by hops.
 
+## Known issues
+
+- The map layout can put labels on top of each other in dense areas. *Tidy layout* re-runs it,
+  and you can drag nodes; positions are remembered per browser.
+- Pickers use the browser's built-in suggestion list, which gets unwieldy with thousands of
+  nodes (after a large LinkedIn import).
+- Fixed in the UI polish pass: on phones, finding paths zoomed the map out to a small cluster
+  and left the results off-screen.
+
 ## Setup
 
 Requires [uv](https://docs.astral.sh/uv/) (local run) or Docker (container run).
@@ -100,6 +109,9 @@ src/sixhops/
   adapters/   implementations of the ports (SQLite store, Gemini, ...)
   app/        FastAPI routes, templates (Jinja2 + HTMX), static assets, wiring
 ```
+
+Visual design notes (tokens, type, principles) are in [`docs/DESIGN.md`](docs/DESIGN.md). The UI
+font is Overpass (SIL OFL), self-hosted under `app/static/fonts/`.
 
 Dependencies point inward: `app` and `adapters` depend on `ports` and `core`; `core` depends
 on nothing in the app. Every graph change, whether from the UI, chat or an import, is expressed
