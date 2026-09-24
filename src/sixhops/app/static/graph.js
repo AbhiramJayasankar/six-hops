@@ -24,6 +24,7 @@
   const style = () => [
     { selector: "node", style: {
       label: "data(name)", "font-family": font, "font-size": 11, "font-weight": 600,
+      "min-zoomed-font-size": 7,  // hide labels when zoomed far out (large imports)
       color: css("--ink"), "text-valign": "bottom", "text-margin-y": 5,
       "text-outline-color": css("--paper"), "text-outline-width": 2.5,
       width: 16, height: 16, "background-color": css("--surface"),
@@ -86,7 +87,9 @@
     }
 
     const unplaced = added.filter((n) => !saved[n.id()]);
-    if (unplaced.length === cy.nodes().length) {
+    // Lay everything out again when the graph is new or grew a lot at once (an import);
+    // otherwise place the few new nodes next to a neighbour so the view doesn't jump.
+    if (unplaced.length === cy.nodes().length || unplaced.length > 25) {
       layout();
     } else if (unplaced.length) {
       // Place new nodes next to a neighbour instead of re-running the layout, so the view
@@ -108,9 +111,30 @@
     return { x: (e.x1 + e.x2) / 2, y: (e.y1 + e.y2) / 2 };
   }
 
+  // Force-directed layout reads best for small graphs, but takes most of a minute on a
+  // LinkedIn-sized one. Above LARGE nodes, draw rings by distance from Me instead: you in the
+  // middle, the people you know around you, then the next hop, and so on.
+  const LARGE = 250;
+
   function layout() {
-    const l = cy.layout({ name: "cose", animate: false, randomize: true, nodeRepulsion: 20000,
-      idealEdgeLength: 100, nodeOverlap: 20, padding: 30 });
+    const me = cy.nodes("[kind = 'me']");
+    let options = { name: "cose", animate: false, randomize: true, nodeRepulsion: 20000,
+      idealEdgeLength: 100, nodeOverlap: 20, padding: 30 };
+    if (cy.nodes().length > LARGE && me.nonempty()) {
+      // Ring value: hop distance first, then split crowded distances into rings of ~100.
+      const depth = {};
+      cy.elements().breadthFirstSearch({ root: me, visit: (v, e, u, i, d) => { depth[v.id()] = d; } });
+      const seen = {};
+      const ring = {};
+      cy.nodes().sort((a, b) => a.data("name").localeCompare(b.data("name"))).forEach((n) => {
+        const d = depth[n.id()] ?? 9;
+        seen[d] = (seen[d] || 0) + 1;
+        ring[n.id()] = (10 - d) * 1000 - Math.floor((seen[d] - 1) / 100);
+      });
+      options = { name: "concentric", animate: false, padding: 30, minNodeSpacing: 6,
+        concentric: (n) => ring[n.id()], levelWidth: () => 1 };
+    }
+    const l = cy.layout(options);
     l.on("layoutstop", savePositions);
     l.run();
   }

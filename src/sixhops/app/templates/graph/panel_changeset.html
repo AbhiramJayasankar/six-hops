@@ -1,0 +1,53 @@
+{% include "graph/_messages.html" %}
+<a href="#" class="back" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>Back to overview</a>
+<section class="review">
+  <h2>{{ change.title }}</h2>
+  {% if notice %}<div class="alert ok" role="status">{{ notice }}</div>{% endif %}
+  {% if change.status != "pending" %}
+    <p>This change was already {{ change.status }}.</p>
+  {% elif not change.changeset.ops %}
+    <p>Everything here is already in your graph. There's nothing to change.</p>
+    <form hx-post="{{ root }}/ui/changes/{{ change.id }}/discard" hx-target="#panel"><button class="secondary">Close</button></form>
+  {% else %}
+    {% set n = change.changeset.ops|length %}
+    <p class="summary-line num">{{ n }} change{{ "" if n == 1 else "s" }} to review. Nothing is saved until you apply them, and you can undo the whole set afterwards.</p>
+    {% for w in change.changeset.warnings %}<div class="alert warn" role="status">{{ w }}</div>{% endfor %}
+
+    {% if asking or matched %}
+    <form class="resolutions" hx-post="{{ root }}/ui/changes/{{ change.id }}/replan" hx-target="#panel" hx-trigger="change">
+      {% if asking %}
+      <h3>Check these matches</h3>
+      {% for r in asking %}{% include "graph/_resolution.html" %}{% endfor %}
+      {% endif %}
+      {% if matched %}
+      <details>
+        <summary>Matched to existing entries <span class="muted num">{{ matched|length }}</span></summary>
+        {% for r in matched %}{% include "graph/_resolution.html" %}{% endfor %}
+      </details>
+      {% endif %}
+    </form>
+    {% endif %}
+
+    <form hx-post="{{ root }}/ui/changes/{{ change.id }}/apply" hx-target="#panel">
+      {% for group, lines in groups.items() %}
+      <details class="diff-group" {% if lines|length <= 25 %}open{% endif %}>
+        <summary>{{ group }} <span class="muted num">{{ lines|length }}</span></summary>
+        <ul class="diff">
+          {% for line in lines[:show_per_group] %}
+          <li>
+            <input type="hidden" name="shown" value="{{ line.index }}">
+            <label class="check"><input type="checkbox" name="include" value="{{ line.index }}" checked>
+              <span>{{ line.text }}{% if line.detail %} <span class="muted small">{{ line.detail }}</span>{% endif %}</span></label>
+          </li>
+          {% endfor %}
+          {% if lines|length > show_per_group %}<li class="muted small">And {{ lines|length - show_per_group }} more, all included.</li>{% endif %}
+        </ul>
+      </details>
+      {% endfor %}
+      <div class="review-actions">
+        <button type="submit">Apply changes</button>
+        <button type="button" class="secondary" hx-post="{{ root }}/ui/changes/{{ change.id }}/discard" hx-target="#panel">Discard</button>
+      </div>
+    </form>
+  {% endif %}
+</section>

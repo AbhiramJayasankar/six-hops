@@ -73,6 +73,15 @@ changes_t = Table(
     Column("inverse", Text, nullable=False),  # JSON list of mutations
 )
 
+pending_t = Table(
+    "pending_changes",
+    metadata,
+    Column("id", String, primary_key=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("status", String, nullable=False),
+    Column("payload", Text, nullable=False),  # JSON, owned by the app's ChangeSet service
+)
+
 _mutations = TypeAdapter(list[Mutation])
 
 
@@ -204,3 +213,26 @@ def _record(row) -> ChangeRecord:
     data = dict(row._mapping)
     data["inverse"] = json.loads(data["inverse"])
     return ChangeRecord(**data)
+
+
+class SqlitePendingChanges:
+    """Proposed-but-not-applied ChangeSets (chat, imports), kept across restarts.
+    Stored as opaque JSON: this is app state, not part of the GraphStore port."""
+
+    def __init__(self, store: SqliteGraphStore):
+        self.engine = store.engine
+
+    def put(self, change_id: str, status: str, payload: str) -> None:
+        values = {"status": status, "payload": payload}
+        with self.engine.begin() as conn:
+            updated = conn.execute(
+                update(pending_t).where(pending_t.c.id == change_id).values(values)
+            ).rowcount
+            if not updated:
+                conn.execute(
+                    insert(pending_t).values(id=change_id, created_at=datetime.now(UTC), **values)
+                )
+
+    def get(self, change_id: str) -> str | None:
+        with self.engine.connect() as conn:
+            return conn.scalar(select(pending_t.c.payload).where(pending_t.c.id == change_id))

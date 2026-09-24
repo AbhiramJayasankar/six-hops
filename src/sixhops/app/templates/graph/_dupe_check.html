@@ -13,7 +13,7 @@
       {% else %}
       <a href="#" hx-get="{{ root }}/ui/node/{{ node.id }}" hx-target="#panel" data-select-node="{{ node.id }}">Open {{ node.name }}</a>
       {% endif %}
-      <span class="muted small">{{ reason|capitalize }} ({{ (score * 100)|round|int }}% match)</span>
+      <span class="muted small">{{ reason|sentence }} ({{ (score * 100)|round|int }}% match)</span>
     </li>
     {% endfor %}
   </ul>

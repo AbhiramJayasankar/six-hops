@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from sixhops.app.auth import AuthMiddleware
 from sixhops.app.config import Settings, get_settings
-from sixhops.app.routes import api, auth, email, graph, jobs, paths, study
+from sixhops.app.routes import api, auth, changesets, email, graph, jobs, paths, study
 from sixhops.app.wiring import build_services
 from sixhops.core.ops import InvalidOps
 from sixhops.ports.graph_store import NothingToUndo, VersionConflict
@@ -34,7 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
 
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
-    for module in (auth, api, graph, paths, jobs, email, study):
+    for module in (auth, api, graph, paths, changesets, jobs, email, study):
         app.include_router(module.router)
 
     _add_error_handlers(app)

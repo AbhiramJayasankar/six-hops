@@ -9,7 +9,7 @@
     {% for keep, drop, d in pairs %}
     <li>
       <p><strong>{{ drop.name }}</strong> and <strong>{{ keep.name }}</strong> <span class="kind kind-{{ keep.kind }}">{{ "You" if keep.kind == "me" else keep.kind|capitalize }}</span></p>
-      <p class="muted small">{{ d.reason|capitalize }} ({{ (d.score * 100)|round|int }}% match)</p>
+      <p class="muted small">{{ d.reason|sentence }} ({{ (d.score * 100)|round|int }}% match)</p>
       <form hx-post="{{ root }}/ui/node/{{ keep.id }}/merge" hx-target="#panel"
             hx-confirm="Merge {{ drop.name }} into {{ keep.name }}? You can undo this.">
         <input type="hidden" name="other" value="{{ drop.name }} (#{{ drop.id }})">

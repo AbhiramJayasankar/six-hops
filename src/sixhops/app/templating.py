@@ -15,3 +15,5 @@ templates = Jinja2Templates(
     directory=Path(__file__).parent / "templates", context_processors=[_root]
 )
 templates.env.globals["edge_text"] = edge_text
+# Jinja's `capitalize` lowercases the rest of the string, which mangles names in reasons.
+templates.env.filters["sentence"] = lambda text: text[:1].upper() + text[1:]

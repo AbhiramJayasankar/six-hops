@@ -329,3 +329,22 @@ th, td { padding: 0.55rem 0.5rem 0.55rem 0; border-bottom: 1px solid var(--rule)
 .dupe-list form { margin: 0; }
 .dupe-pairs li { border-bottom: 1px solid var(--rule); padding: 0.6rem 0; }
 .dupe-pairs p { margin: 0 0 0.3rem; }
+
+/* --- reviewing proposed changes ----------------------------------------------------------- */
+
+.alert.warn { color: var(--ink); border-color: var(--company); }
+.steps-list { padding-left: 1.2rem; }
+.steps-list li { margin: 0.25rem 0; }
+.htmx-indicator { display: none; margin-left: 0.5rem; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+.resolution { border: none; border-top: 1px solid var(--rule); margin: 0; padding: 0.6rem 0; }
+.resolution legend { padding: 0; margin-bottom: 0.3rem; }
+.resolution label.check { margin: 0.2rem 0; align-items: flex-start; }
+.resolutions details { margin-top: 0.5rem; }
+.diff-group { border-top: 1px solid var(--rule); padding: 0.5rem 0; }
+.diff-group summary { cursor: pointer; font-weight: 650; }
+.diff { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.diff li { padding: 0.2rem 0; }
+.diff label.check { margin: 0; align-items: flex-start; }
+.diff label.check input { margin-top: 0.3rem; }
+.review-actions { display: flex; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); }

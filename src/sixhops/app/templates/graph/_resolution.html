@@ -1,0 +1,9 @@
+<fieldset class="resolution">
+  <legend><strong>{{ r.mention_name }}</strong> <span class="kind kind-{{ r.kind }}">{{ r.kind|capitalize }}</span></legend>
+  {% for c in r.candidates %}
+  <label class="check"><input type="radio" name="choice.{{ r.mention_key }}" value="{{ c.node_id }}" {% if r.choice == c.node_id %}checked{% endif %}>
+    <span>{{ c.name }} <span class="muted small">{{ c.reason|sentence }}, {{ (c.score * 100)|round|int }}% match</span></span></label>
+  {% endfor %}
+  <label class="check"><input type="radio" name="choice.{{ r.mention_key }}" value="new" {% if r.choice == "new" %}checked{% endif %}>
+    <span>Someone new</span></label>
+</fieldset>

@@ -46,6 +46,7 @@
 
 <section>
   <h3>Import and export</h3>
+  <p><a href="#" hx-get="{{ root }}/ui/import/linkedin" hx-target="#panel">Import your LinkedIn connections</a></p>
   <p><a href="{{ root }}/api/graph/export" download>Download the graph as JSON</a></p>
   <form hx-post="{{ root }}/ui/import" hx-target="#panel" hx-encoding="multipart/form-data"
         hx-confirm="Replace your whole graph with this file? You can undo it afterwards.">
