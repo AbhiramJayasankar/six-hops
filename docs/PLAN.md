@@ -112,7 +112,7 @@ class ChatTurn(BaseModel):  intent: Literal["add_facts","find_path","other"]
 NodeRef = ExistingRef(id) | NewRef(key)
 Op = CreateNode(key, kind, name, aliases, attrs, notes)
    | UpdateNode(node_id, name?, add_aliases?, attrs?, notes?)
-   | MergeNodes(keep_id, drop: NodeRef, score, reason)
+   | MergeNodes(keep_id, drop_id, score, reason)        # both existing nodes
    | CreateEdge(kind, src, dst, strength, note, strength_inferred)
    | UpdateEdge(edge_id, kind?, strength?, note?)           # e.g. WORKS_AT -> WORKED_AT
    | DeleteNode(node_id) | DeleteEdge(edge_id)            # manual UI only
