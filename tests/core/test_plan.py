@@ -193,3 +193,37 @@ def test_any_plan_compiles(ex, update_edges, data):
     cs = plan(ex, g, decisions, PlanPolicy(update_existing_edges=update_edges))
     compile_ops(g, cs.ops)
     assert not any(type(op).__name__.startswith("Delete") for op in cs.ops)
+
+
+def test_same_name_different_linkedin_stays_two_people():
+    def priya(key):
+        return Mention(key=key, kind="person", name="Priya Sharma",
+                       attrs={"linkedin": f"linkedin.com/in/{key}"})  # fmt: skip
+
+    ex = Extraction(mentions=[
+        priya("a"),
+        priya("b"),
+        Mention(key="c", kind="person", name="Rahul"),
+        Mention(key="d", kind="person", name="rahul"),
+    ])  # fmt: skip
+    created = [op.key for op in plan(ex, graph(me())).ops if isinstance(op, CreateNode)]
+    assert created == ["a", "b", "c"]
+
+
+def test_two_different_people_are_not_both_matched_to_one_entry():
+    g = graph(me(), person("ps", "Priya S"))
+    ex = Extraction(mentions=[
+        Mention(key="a", kind="person", name="Priya Sharma", attrs={"linkedin": "l.com/in/a"}),
+        Mention(key="b", kind="person", name="Priya Sharma", attrs={"linkedin": "l.com/in/b"}),
+    ])  # fmt: skip
+    cs = plan(ex, g)
+    assert [r.choice for r in cs.resolutions] == ["ps", NEW]
+    assert [r.choice for r in plan(ex, g, {"a": NEW}).resolutions] == [NEW, "ps"]
+
+
+def test_being_connected_to_me_is_not_evidence():
+    g = graph(me(), person("a", "Anita"), knows("me", "a"))
+    ex = Extraction(mentions=[Mention(key="x", kind="person", name="Anita Rao")],
+                    relations=[Relation(kind="KNOWS", src="me", dst="x")])  # fmt: skip
+    (r,) = plan(ex, g).resolutions
+    assert r.candidates[0].score == 0.8 and "connected" not in r.candidates[0].reason

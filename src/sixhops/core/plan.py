@@ -24,7 +24,7 @@ from sixhops.core.ops import (
     UpdateEdge,
     UpdateNode,
 )
-from sixhops.core.resolve import AUTO_LINK, Candidate, Index, candidates, tokens
+from sixhops.core.resolve import AUTO_LINK, Candidate, Index, candidates, normalize_url, tokens
 
 NEW = "new"
 EMPLOYMENT = {"WORKS_AT", "WORKED_AT"}
@@ -79,17 +79,24 @@ def plan(
     #    candidates connected to something else mentioned alongside them.
     index = Index(g)
     first = {k: candidates(g, m.name, m.kind, m.attrs, index=index) for k, m in mentions.items()}
+    # Me is left out: nearly everyone is connected to Me, so it says nothing about identity.
     context: dict[str, set[str]] = {k: set() for k in mentions}
     for r in relations:
         for a, b in ((r.src, r.dst), (r.dst, r.src)):
-            if a != ME:
-                context[a] |= {me.id} if b == ME else {c.node_id for c in first[b]}
+            if ME not in (a, b):
+                context[a] |= {c.node_id for c in first[b]}
 
     target: dict[str, str | None] = {}  # mention key -> existing node id, or None for new
+    claimed: dict[str, str] = {}  # node id -> identity of the mention that took it
     resolutions: list[Resolution] = []
     for key, m in mentions.items():
         found = candidates(g, m.name, m.kind, m.attrs, context=frozenset(context[key]), index=index)
-        choice, auto = _decide(g, m, found, (decisions or {}).get(key), warnings)
+        decision = (decisions or {}).get(key)
+        choice, auto = _decide(g, m, found, decision, warnings)
+        if choice and decision is None and claimed.get(choice, _identity(m)) != _identity(m):
+            choice, auto = None, False  # another mention with a different identity took it
+        if choice:
+            claimed.setdefault(choice, _identity(m))
         target[key] = choice
         if found:
             resolutions.append(
@@ -171,13 +178,15 @@ def _clean(
     """Merge repeated mentions of the same name, and drop relations that can't be valid."""
     mentions: dict[str, Mention] = {}
     alias: dict[str, str] = {}
-    by_name: dict[tuple[str, tuple[str, ...]], str] = {}
+    by_name: dict[tuple[str, tuple[str, ...], str], str] = {}
     for m in extraction.mentions:
         if m.key == ME or m.key in mentions or m.key in alias:
             warnings.append(f"Ignored a repeated or reserved mention key {m.key!r}.")
             continue
-        name_key = (m.kind, tuple(tokens(m.name, m.kind)))
-        if name_key in by_name:  # "Priya" mentioned twice as two keys: same entry
+        # Same kind and name is the same entry, unless LinkedIn or email says otherwise
+        # (two different "Priya Sharma"s in a LinkedIn export stay apart).
+        name_key = (m.kind, tuple(tokens(m.name, m.kind)), _identity(m))
+        if name_key in by_name:
             first = by_name[name_key]
             alias[m.key] = first
             mentions[first] = mentions[first].model_copy(
@@ -200,6 +209,11 @@ def _clean(
         else:
             relations.append(r)
     return mentions, relations
+
+
+def _identity(m: Mention) -> str:
+    """LinkedIn URL or email, when known: what tells two same-named people apart."""
+    return normalize_url(m.attrs.get("linkedin", "")) or m.attrs.get("email", "").casefold()
 
 
 def _decide(
