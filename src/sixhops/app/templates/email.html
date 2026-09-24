@@ -1,0 +1,19 @@
+{% extends "_stub.html" %}
+{% block title %}6hops · Cold Email{% endblock %}
+{% block heading %}Cold Email{% endblock %}
+{% block lead %}Draft outreach to someone in your graph, using the path that connects you.{% endblock %}
+{% block todo %}
+<ul class="todo">
+  <li>TODO: pick a target person (or a company, then its best referrer from <code>core.paths.rank()</code>).</li>
+  <li>TODO: build a context block from the path: first hop, edge notes, shared institutions.</li>
+  <li>TODO: draft via <code>LLMProvider.text()</code>; variants for intro request vs. direct ask.</li>
+  <li>TODO: save drafts and log "contacted" on the person node.</li>
+</ul>
+{% endblock %}
+{% block placeholder %}
+<section class="card placeholder">
+  <label>To <input disabled placeholder="Select a person from your graph"></label>
+  <label>Draft <textarea disabled rows="6" placeholder="Draft will appear here"></textarea></label>
+  <button disabled>Draft email</button>
+</section>
+{% endblock %}

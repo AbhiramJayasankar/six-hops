@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}6hops{% endblock %}</title>
+  <link rel="stylesheet" href="{{ root }}/static/app.css">
+  <script src="{{ root }}/static/vendor/htmx-2.0.11.min.js" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ root }}/">6hops</a>
+    <nav>
+      <a href="{{ root }}/" {% if active == "graph" %}aria-current="page"{% endif %}>Graph</a>
+      <a href="{{ root }}/jobs" {% if active == "jobs" %}aria-current="page"{% endif %}>Jobs</a>
+      <a href="{{ root }}/email" {% if active == "email" %}aria-current="page"{% endif %}>Cold Email</a>
+      <a href="{{ root }}/study" {% if active == "study" %}aria-current="page"{% endif %}>Study</a>
+    </nav>
+    <form method="post" action="{{ root }}/logout"><button class="link">Log out</button></form>
+  </header>
+  <main class="{% block main_class %}page{% endblock %}">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

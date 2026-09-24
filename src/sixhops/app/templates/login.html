@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>6hops · Log in</title>
+  <link rel="stylesheet" href="{{ root }}/static/app.css">
+</head>
+<body class="login">
+  <form method="post" action="{{ root }}/login" class="card login-card">
+    <h1>6hops</h1>
+    <label>Password <input type="password" name="password" autofocus required></label>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <button type="submit">Log in</button>
+  </form>
+</body>
+</html>

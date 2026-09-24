@@ -1,0 +1,20 @@
+{% extends "_stub.html" %}
+{% block title %}6hops · Study{% endblock %}
+{% block heading %}Study{% endblock %}
+{% block lead %}Track DSA and interview-prep progress.{% endblock %}
+{% block todo %}
+<ul class="todo">
+  <li>TODO: topics and problems with status (todo / attempted / solved / revisit), difficulty, link.</li>
+  <li>TODO: spaced-repetition "revisit" queue.</li>
+  <li>TODO: streak and per-topic progress view.</li>
+  <li>TODO: optionally tie prep to target companies from the graph.</li>
+</ul>
+{% endblock %}
+{% block placeholder %}
+<section class="card placeholder">
+  <table>
+    <thead><tr><th>Topic</th><th>Solved</th><th>Revisit</th></tr></thead>
+    <tbody><tr><td colspan="3" class="muted">Nothing tracked yet.</td></tr></tbody>
+  </table>
+</section>
+{% endblock %}
