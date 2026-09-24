@@ -63,25 +63,27 @@ def test_panel_shows_path_with_ask_and_highlight_data(seeded):
     client, ids = seeded
     html = client.get("/ui/paths", params={"target": "Razorpay"}).text
     assert "Paths to Razorpay" in html
-    assert "Ask <strong>Rahul</strong> for an intro to <strong>Priya S</strong>" in html
+    assert "Ask Rahul for an intro to Priya S." in html
+    assert "ask first" in html and "can refer you" in html
     assert f'data-path-nodes="me,{ids["rahul"]},{ids["priya"]},{ids["rzp"]}"' in html
-    assert "Show longer paths (up to 6 hops)" in html
+    assert "Show longer paths, up to 6 hops" in html
 
 
 def test_panel_unreachable_offers_institution_hops(seeded):
     client, _ = seeded
     html = client.get("/ui/paths", params={"target": "Faraway"}).text
-    assert "1 person at Faraway, but none connected to you" in html
+    assert "1 person is at Faraway, but none of them connect back to you." in html
     assert "via_institutions=true" in html
     html = client.get("/ui/paths", params={"target": "Faraway", "via_institutions": "true"}).text
     assert "alma mater of" in html
-    assert "Reach out to <strong>Anita</strong> (shared: IIT Madras) for a referral." in html
+    assert "Reach out to Anita (shared: IIT Madras) for a referral." in html
+    assert 'class="leg s3 shared"' in html
 
 
 def test_panel_unknown_company_suggests(seeded):
     client, _ = seeded
     html = client.get("/ui/paths", params={"target": "Razorpy"}).text
-    assert "No company called <strong>Razorpy</strong>" in html
+    assert "There's no company called <strong>Razorpy</strong>" in html
     assert ">Razorpay</a>" in html
 
 

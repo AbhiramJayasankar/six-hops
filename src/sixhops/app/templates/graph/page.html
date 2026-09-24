@@ -1,37 +1,42 @@
 {% extends "base.html" %}
-{% block title %}6hops · Graph{% endblock %}
+{% block title %}Graph · 6hops{% endblock %}
 {% block main_class %}graph-layout{% endblock %}
 {% block head %}
 <script src="{{ root }}/static/vendor/cytoscape-3.34.3.min.js" defer></script>
 <script src="{{ root }}/static/graph.js" defer></script>
 {% endblock %}
 {% block content %}
-<section class="canvas-wrap">
+<section class="canvas-wrap" aria-label="Network map">
   <div class="canvas-tools">
-    <input id="find-node" list="find-options" placeholder="Find a node…" aria-label="Find a node">
+    <label class="visually-hidden" for="find-node">Find someone in your graph</label>
+    <input id="find-node" list="find-options" placeholder="Find someone" autocomplete="off">
     <datalist id="find-options"></datalist>
     <form id="reach" class="reach" hx-get="{{ root }}/ui/paths" hx-target="#panel">
-      <input name="target" list="company-options" placeholder="Reach a company…" aria-label="Company to reach" required autocomplete="off">
+      <span id="reach-label">Reach</span>
+      <input name="target" list="company-options" placeholder="Company" aria-labelledby="reach-label" required autocomplete="off">
       <datalist id="company-options"></datalist>
-      <label class="toggle" title="Treat a shared company or school as a weak tie"><input type="checkbox" name="via_institutions" value="true"> via shared employers/schools</label>
+      <label class="check"><input type="checkbox" name="via_institutions" value="true">Through shared employers and schools</label>
       <button type="submit">Find paths</button>
     </form>
-    <span class="spacer"></span>
-    <button class="secondary" id="fit">Fit</button>
-    <button class="secondary" id="relayout">Re-layout</button>
   </div>
+  <div class="map">
   <div id="cy" data-graph-url="{{ root }}/api/graph" data-node-url="{{ root }}/ui/node/" data-edge-url="{{ root }}/ui/edge/"></div>
-  <ul class="legend">
-    <li><span class="dot me"></span>Me</li>
-    <li><span class="dot person"></span>Person</li>
-    <li><span class="dot company"></span>Company</li>
-    <li><span class="dot school"></span>School</li>
-    <li><span class="line"></span>knows / works at</li>
-    <li><span class="line dashed"></span>worked at</li>
-    <li><span class="line dotted"></span>studied at</li>
+  <div class="map-controls">
+    <button class="secondary" id="fit" type="button">Fit to screen</button>
+    <button class="secondary" id="relayout" type="button">Tidy layout</button>
+  </div>
+  <ul class="legend" aria-label="Legend">
+    <li><span class="mark me"></span>You</li>
+    <li><span class="mark person"></span>Person</li>
+    <li><span class="mark company"></span>Company</li>
+    <li><span class="mark school"></span>School</li>
+    <li><span class="line"></span>Knows, works at</li>
+    <li><span class="line dashed"></span>Worked at</li>
+    <li><span class="line dotted"></span>Studied at</li>
   </ul>
+  </div>
 </section>
-<aside id="panel" class="panel" hx-get="{{ root }}/ui/panel" hx-trigger="load" hx-swap="innerHTML">
-  <p class="muted">Loading…</p>
+<aside id="panel" class="panel" aria-live="polite" hx-get="{{ root }}/ui/panel" hx-trigger="load" hx-swap="innerHTML">
+  <p class="muted">Loading your network…</p>
 </aside>
 {% endblock %}

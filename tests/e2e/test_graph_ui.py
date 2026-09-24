@@ -14,7 +14,7 @@ def by_name(g, name):
 def test_page_and_home_panel_render(authed):
     assert 'id="cy"' in authed.get("/").text
     panel = authed.get("/ui/panel").text
-    assert "Your network" in panel and "Add a node" in panel
+    assert "Your network" in panel and "Add someone or somewhere" in panel
 
 
 def test_add_person_who_knows_me_then_connect_to_new_company(authed):
@@ -66,7 +66,7 @@ def test_edit_edge_and_switch_to_worked_at(authed):
     rahul = by_name(graph(authed), "Rahul")
     authed.post(f"/ui/node/{rahul['id']}/connect", data={"kind": "WORKS_AT", "other": "Flipkart"})
     (edge,) = [e for e in graph(authed)["edges"].values() if e["kind"] == "WORKS_AT"]
-    assert "worked at (former)" in authed.get(f"/ui/edge/{edge['id']}").text
+    assert "Worked there before" in authed.get(f"/ui/edge/{edge['id']}").text
     authed.post(
         f"/ui/edge/{edge['id']}", data={"kind": "WORKED_AT", "strength": "5", "note": "left 2024"}
     )

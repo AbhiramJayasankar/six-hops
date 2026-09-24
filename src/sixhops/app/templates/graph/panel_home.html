@@ -1,48 +1,53 @@
 {% include "graph/_messages.html" %}
 {% include "graph/_datalists.html" %}
-<h2>Your network</h2>
-<p class="muted">{{ counts.person }} {{ "person" if counts.person == 1 else "people" }} ·
-  {{ counts.company }} compan{{ "y" if counts.company == 1 else "ies" }} ·
-  {{ counts.school }} school{{ "" if counts.school == 1 else "s" }} ·
-  {{ g.edges|length }} connection{{ "" if g.edges|length == 1 else "s" }}</p>
-<p class="muted small">Click a node or connection to view and edit it.</p>
+<section>
+  <h2>Your network</h2>
+  {% set n_people, n_companies, n_schools, n_edges = counts.person, counts.company, counts.school, g.edges|length %}
+  <p class="summary-line num">{{ n_people }} {{ "person" if n_people == 1 else "people" }}, {{ n_companies }} compan{{ "y" if n_companies == 1 else "ies" }} and {{ n_schools }} school{{ "" if n_schools == 1 else "s" }}, with {{ n_edges }} connection{{ "" if n_edges == 1 else "s" }}.
+    {% if n_edges %}Select anything on the map to see or edit it.{% endif %}</p>
+</section>
 
-<section class="card">
-  <h3>Add a node</h3>
+<section>
+  <h3>Add someone or somewhere</h3>
   <form hx-post="{{ root }}/ui/node" hx-target="#panel">
-    <label>Kind
-      <select name="kind">
-        <option value="person">Person</option>
-        <option value="company">Company</option>
-        <option value="school">School</option>
-      </select>
-    </label>
-    <label>Name <input name="name" required autocomplete="off"></label>
-    <label class="inline"><input type="checkbox" name="knows_me" value="true" checked> I know them (people only), strength
-      <select name="strength" class="narrow">{% for s in range(1, 6) %}<option {% if s == 3 %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
-    </label>
+    <div class="row">
+      <label class="narrow">Type
+        <select name="kind">
+          <option value="person">Person</option>
+          <option value="company">Company</option>
+          <option value="school">School</option>
+        </select>
+      </label>
+      <label>Name <input name="name" required autocomplete="off"></label>
+    </div>
+    <div class="row inline">
+      <label class="check"><input type="checkbox" name="knows_me" value="true" checked>I know them (people only)</label>
+      <label class="inline-select">Strength
+        <select name="strength">{% for s in range(1, 6) %}<option {% if s == 3 %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+      </label>
+    </div>
     <button type="submit">Add</button>
   </form>
 </section>
 
-<section class="card">
-  <h3>History</h3>
-  <form hx-post="{{ root }}/ui/undo" hx-target="#panel">
-    <button type="submit" class="secondary" {% if not history %}disabled{% endif %}>
-      Undo{% if history %}: {{ history[0].summary }}{% endif %}
-    </button>
-  </form>
+<section>
+  <h3>Recent changes</h3>
   {% if history %}
-  <ol class="history">{% for r in history %}<li><span>{{ r.summary }}</span> <time class="muted small">{{ r.created_at.strftime("%d %b %H:%M") }}</time></li>{% endfor %}</ol>
+  <form hx-post="{{ root }}/ui/undo" hx-target="#panel">
+    <button type="submit" class="secondary">Undo "{{ history[0].summary }}"</button>
+  </form>
+  <ol class="history">{% for r in history %}<li><span>{{ r.summary }}</span><time datetime="{{ r.created_at.isoformat() }}">{{ r.created_at.strftime("%-d %b, %H:%M") }}</time></li>{% endfor %}</ol>
+  {% else %}
+  <p class="muted">Changes you make show up here, and you can undo them.</p>
   {% endif %}
 </section>
 
-<section class="card">
-  <h3>Import / export</h3>
-  <p><a href="{{ root }}/api/graph/export" download>Export graph as JSON</a></p>
+<section>
+  <h3>Import and export</h3>
+  <p><a href="{{ root }}/api/graph/export" download>Download the graph as JSON</a></p>
   <form hx-post="{{ root }}/ui/import" hx-target="#panel" hx-encoding="multipart/form-data"
-        hx-confirm="Replace the whole graph with this file? You can undo it afterwards.">
-    <label>Import JSON (replaces the graph) <input type="file" name="file" accept="application/json,.json" required></label>
+        hx-confirm="Replace your whole graph with this file? You can undo it afterwards.">
+    <label>Replace the graph from a JSON file <input type="file" name="file" accept="application/json,.json" required></label>
     <button type="submit" class="secondary">Import</button>
   </form>
 </section>

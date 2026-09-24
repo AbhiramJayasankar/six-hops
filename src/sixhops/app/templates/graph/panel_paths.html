@@ -1,66 +1,71 @@
 {% include "graph/_messages.html" %}
-<p><a href="#" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>← Overview</a></p>
+<a href="#" class="back" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>Back to overview</a>
 {% if not company %}
+<section>
   <h2>Reach a company</h2>
-  {% if query %}<p>No company called <strong>{{ query }}</strong> in your graph.</p>{% endif %}
+  {% if query %}<p>There's no company called <strong>{{ query }}</strong> in your graph. Add it from the overview, or pick a close match.</p>{% endif %}
   {% if suggestions %}
-  <p>Did you mean:</p>
-  <ul>{% for c in suggestions %}
+  <ul class="suggestions">{% for c in suggestions %}
     <li><a href="#" hx-get="{{ root }}/ui/paths?target={{ (c.name ~ ' (#' ~ c.id ~ ')')|urlencode }}&via_institutions={{ via_institutions|lower }}" hx-target="#panel">{{ c.name }}</a></li>
   {% endfor %}</ul>
   {% endif %}
+</section>
 {% else %}
+{% set people = result.people_at_target %}
+{% set target_param = (company.name ~ " (#" ~ company.id ~ ")")|urlencode %}
+{% set longer_url = root ~ "/ui/paths?target=" ~ target_param ~ "&max_hops=" ~ hard_max ~ "&via_institutions=" ~ (via_institutions|lower) %}
+{% set via_url = root ~ "/ui/paths?target=" ~ target_param ~ "&max_hops=" ~ max_hops ~ "&via_institutions=true" %}
+<section>
   <h2>Paths to {{ company.name }}</h2>
-  <p class="muted small">Up to {{ max_hops }} hops{% if via_institutions %}, including shared employers/schools as weak ties{% endif %}. {{ result.people_at_target }} {{ "person" if result.people_at_target == 1 else "people" }} in your graph {{ "is" if result.people_at_target == 1 else "are" }} at {{ company.name }}.</p>
-
-  {% set longer_url = root ~ "/ui/paths?target=" ~ ((company.name ~ " (#" ~ company.id ~ ")")|urlencode) ~ "&max_hops=" ~ hard_max ~ "&via_institutions=" ~ (via_institutions|lower) %}
-  {% set via_url = root ~ "/ui/paths?target=" ~ ((company.name ~ " (#" ~ company.id ~ ")")|urlencode) ~ "&max_hops=" ~ max_hops ~ "&via_institutions=true" %}
+  <p class="muted small">{{ people }} {{ "person" if people == 1 else "people" }} in your graph {{ "works or worked" if people == 1 else "work or worked" }} there. Showing paths up to {{ max_hops }} hops{% if via_institutions %}, counting shared employers and schools as weak ties{% endif %}.</p>
 
   {% if not views %}
-    <div class="card">
-    {% if result.people_at_target == 0 %}
-      <p>Nobody in your graph works or worked at {{ company.name }} yet.</p>
+  <div class="route-empty">
+    {% if people == 0 %}
+      <p>Nobody in your graph is connected to {{ company.name }} yet. Add someone who works there to see a path.</p>
     {% elif result.min_hops is none %}
-      <p>{{ result.people_at_target }} {{ "person" if result.people_at_target == 1 else "people" }} at {{ company.name }}, but none connected to you.</p>
-      {% if not via_institutions %}<p><a href="#" hx-get="{{ via_url }}" hx-target="#panel">Try via shared employers/schools</a></p>{% endif %}
+      <p>{{ people }} {{ "person is" if people == 1 else "people are" }} at {{ company.name }}, but none of them connect back to you.</p>
+      {% if not via_institutions %}<button class="secondary" hx-get="{{ via_url }}" hx-target="#panel">Try through shared employers and schools</button>{% endif %}
     {% elif result.min_hops > hard_max %}
-      <p>The nearest path is {{ result.min_hops }} hops, beyond the {{ hard_max }}-hop limit.</p>
+      <p>The nearest path is {{ result.min_hops }} hops, more than the {{ hard_max }}-hop limit.</p>
     {% else %}
       <p>No path within {{ max_hops }} hops. The nearest is {{ result.min_hops }} hops.</p>
-      <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths (up to {{ hard_max }} hops)</button>
+      <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths, up to {{ hard_max }} hops</button>
     {% endif %}
-    </div>
+  </div>
   {% else %}
-    <ol class="paths">
-    {% for v in views %}
-      <li class="path{% if loop.first %} active{% endif %}" tabindex="0" data-path-nodes="{{ v.path.nodes|join(',') }}" data-path-edges="{{ v.path.edges|join(',') }}">
-        <div class="path-head">
-          <span class="score" title="Product of edge strengths along the path">{{ (v.path.score * 100)|round|int }}%</span>
-          <span class="muted small">{{ v.path.hops }} hop{{ "" if v.path.hops == 1 else "s" }}</span>
-          {% for tag in v.path.tags|sort %}<span class="badge">{{ tag }}</span>{% endfor %}
-        </div>
-        <ol class="steps">
-          <li class="step-node"><strong>{{ v.start.name }}</strong></li>
-          {% for hop in v.hops %}
-          <li class="step-edge"><span class="edge-kind">{{ hop.kind_text }}</span> · {{ hop.edge.strength }}/5{% if hop.edge.note %} · <span class="muted">{{ hop.edge.note }}</span>{% endif %}</li>
-          <li class="step-node"><strong>{{ hop.to.name }}</strong></li>
-          {% endfor %}
-        </ol>
-        <p class="small ask">
-          {% if not v.first_hop %}You're directly connected to {{ company.name }}.
-          {% else %}
-            {% if v.shared %}Reach out to <strong>{{ v.first_hop.name }}</strong> (shared: {{ v.shared.name }}){% else %}Ask <strong>{{ v.first_hop.name }}</strong>{% endif %}
-            {%- if v.first_hop.id != v.referrer.id %} for an intro to <strong>{{ v.referrer.name }}</strong>.{% else %} for a referral.{% endif %}
-          {% endif %}
-        </p>
-      </li>
-    {% endfor %}
-    </ol>
-    {% if max_hops < hard_max %}
-      <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths (up to {{ hard_max }} hops)</button>
-    {% endif %}
-    {% if not via_institutions %}
-      <p class="small"><a href="#" hx-get="{{ via_url }}" hx-target="#panel">Also consider shared employers/schools</a></p>
-    {% endif %}
+  <ol class="paths">
+  {% for v in views %}
+    <li class="path{% if loop.first %} active{% endif %}" tabindex="0" aria-label="Path {{ loop.index }}"
+        data-path-nodes="{{ v.path.nodes|join(',') }}" data-path-edges="{{ v.path.edges|join(',') }}">
+      <p class="ask">
+        {% if not v.first_hop %}You're directly connected to {{ company.name }}.
+        {% elif v.shared %}Reach out to {{ v.first_hop.name }} (shared: {{ v.shared.name }}){% if v.first_hop.id != v.referrer.id %} for an intro to {{ v.referrer.name }}.{% else %} for a referral.{% endif %}
+        {% else %}Ask {{ v.first_hop.name }}{% if v.first_hop.id != v.referrer.id %} for an intro to {{ v.referrer.name }}.{% else %} for a referral.{% endif %}
+        {% endif %}
+      </p>
+      <p class="facts num">
+        <span>{{ v.path.hops }} hop{{ "" if v.path.hops == 1 else "s" }}, warmth {{ (v.path.score * 100)|round|int }}%</span>
+        {% for tag in v.path.tags|sort %}<span class="tag">{{ tag }}</span>{% endfor %}
+      </p>
+      <ol class="route">
+        <li class="stop kind-{{ v.start.kind }}">{{ v.start.name }}<span class="role">you</span></li>
+        {% for hop in v.hops %}
+        <li class="leg s{{ hop.edge.strength }} {{ hop.style }}">{{ hop.kind_text }}, strength {{ hop.edge.strength }} of 5{% if hop.edge.note %}<span class="note">{{ hop.edge.note }}</span>{% endif %}</li>
+        <li class="stop kind-{{ hop.to.kind }}">{{ hop.to.name }}
+          {%- if v.first_hop and hop.to.id == v.first_hop.id %}<span class="role">ask first</span>
+          {%- elif hop.to.id == v.referrer.id and not loop.last %}<span class="role">can refer you</span>{% endif %}</li>
+        {% endfor %}
+      </ol>
+    </li>
+  {% endfor %}
+  </ol>
+  {% if max_hops < hard_max %}
+  <button class="secondary" hx-get="{{ longer_url }}" hx-target="#panel">Show longer paths, up to {{ hard_max }} hops</button>
   {% endif %}
+  {% if not via_institutions %}
+  <p class="small" style="margin-top:0.75rem"><a href="#" hx-get="{{ via_url }}" hx-target="#panel">Also count shared employers and schools</a></p>
+  {% endif %}
+  {% endif %}
+</section>
 {% endif %}

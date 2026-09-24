@@ -15,36 +15,51 @@
     try { localStorage.setItem(POS_KEY, JSON.stringify(pos)); } catch { /* storage unavailable */ }
   };
 
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const narrow = window.matchMedia("(max-width: 800px)");
+  const font = '"Overpass", system-ui, sans-serif';
+
+  // Stations on a transit map: people are rings, companies squares, schools diamonds-ish
+  // hexagons, and Me is the red "you are here" marker. Colours come from the CSS tokens.
   const style = () => [
     { selector: "node", style: {
-      label: "data(name)", "font-size": 11, color: css("--text"), "text-valign": "bottom",
-      "text-margin-y": 4, "background-color": css("--person"), width: 22, height: 22,
-      "text-outline-color": css("--bg"), "text-outline-width": 2,
+      label: "data(name)", "font-family": font, "font-size": 11, "font-weight": 600,
+      color: css("--ink"), "text-valign": "bottom", "text-margin-y": 5,
+      "text-outline-color": css("--paper"), "text-outline-width": 2.5,
+      width: 16, height: 16, "background-color": css("--surface"),
+      "border-width": 3.5, "border-color": css("--person"),
     } },
     { selector: "node[kind = 'me']", style: {
-      shape: "star", width: 44, height: 44, "background-color": css("--me"),
-      "font-size": 13, "font-weight": "bold",
+      width: 26, height: 26, "background-color": css("--here"), "border-color": css("--surface"),
+      "border-width": 3, "outline-width": 3, "outline-color": css("--here"), "outline-offset": 0,
+      "font-size": 13, "font-weight": 800,
     } },
     { selector: "node[kind = 'company']", style: {
-      shape: "round-rectangle", width: 28, height: 22, "background-color": css("--company"),
+      shape: "round-rectangle", width: 20, height: 20, "background-color": css("--company"),
+      "border-width": 0,
     } },
     { selector: "node[kind = 'school']", style: {
-      shape: "hexagon", width: 28, height: 24, "background-color": css("--school"),
+      shape: "hexagon", width: 22, height: 20, "background-color": css("--school"), "border-width": 0,
     } },
     { selector: "edge", style: {
-      width: "mapData(strength, 1, 5, 1, 5)", "line-color": css("--border"),
-      "curve-style": "bezier", opacity: 0.9,
+      width: "mapData(strength, 1, 5, 1, 4)", "line-color": css("--rule"), "curve-style": "bezier",
     } },
-    { selector: "edge[kind = 'WORKED_AT']", style: { "line-style": "dashed" } },
+    { selector: "edge[kind = 'WORKED_AT']", style: { "line-style": "dashed", "line-dash-pattern": [6, 4] } },
     { selector: "edge[kind = 'STUDIED_AT']", style: { "line-style": "dotted" } },
-    { selector: ":selected", style: {
-      "border-width": 3, "border-color": css("--accent"), "line-color": css("--accent"),
+    { selector: "node:selected", style: { "underlay-color": css("--route"), "underlay-opacity": 0.25,
+      "underlay-padding": 6, "underlay-shape": "ellipse" } },
+    { selector: "edge:selected", style: { "line-color": css("--route") } },
+    { selector: ".faded", style: { opacity: 0.18 } },
+    { selector: "edge.on-path", style: {
+      "line-color": css("--route"), width: "mapData(strength, 1, 5, 2.5, 7)", opacity: 1, "z-index": 10,
     } },
-    { selector: ".faded", style: { opacity: 0.15 } },
-    { selector: ".on-path", style: {
-      "line-color": css("--accent"), "border-width": 3, "border-color": css("--accent"), opacity: 1,
-    } },
+    { selector: "node.on-path", style: { opacity: 1, "z-index": 10, "font-size": 12, "font-weight": 750 } },
   ];
+
+  const animate = (opts) => {
+    if (reducedMotion.matches) cy.stop().fit(opts.fit ? opts.fit.eles : undefined, opts.fit ? opts.fit.padding : 30);
+    else cy.stop().animate({ ...opts, duration: 280 });
+  };
 
   const cy = cytoscape({ container: el, style: style(), wheelSensitivity: 0.3, maxZoom: 3, minZoom: 0.1 });
   window.sixhops = { cy };
@@ -105,7 +120,9 @@
     cy.elements().unselect();
     if (target.empty()) return;
     target.select();
-    if (target.isNode()) cy.animate({ center: { eles: target }, duration: 250 });
+    if (target.isNode()) {
+      if (reducedMotion.matches) cy.center(target); else cy.animate({ center: { eles: target }, duration: 250 });
+    }
   }
 
   function fillFinder(g) {
@@ -127,7 +144,18 @@
     const onPath = cy.collection(ids.map((id) => cy.getElementById(id)).filter((e) => e.nonempty()));
     cy.elements().not(onPath).addClass("faded");
     onPath.addClass("on-path");
-    cy.animate({ fit: { eles: onPath, padding: 80 }, duration: 300 });
+    fitTo(onPath);
+  }
+
+  function fitTo(eles) {
+    // Size the padding to the canvas so a path never shrinks to a dot on a phone, and cap the
+    // zoom so a two-stop path doesn't fill the screen.
+    cy.resize();
+    const padding = Math.round(Math.min(80, Math.max(24, Math.min(cy.width(), cy.height()) * 0.12)));
+    const before = cy.maxZoom();
+    cy.maxZoom(1.6);
+    animate({ fit: { eles, padding } });
+    cy.maxZoom(before);
   }
 
   const openPanel = (url) => htmx.ajax("GET", url, { target: panel, swap: "innerHTML" });
@@ -140,8 +168,17 @@
   cy.on("dragfree", "node", savePositions);
   panel.addEventListener("htmx:afterSwap", () => {
     panel.scrollTop = 0;
-    highlightPath(panel.querySelector(".path"));  // first (best) path, or clear
+    const best = panel.querySelector(".path");
+    highlightPath(best);  // first (best) path, or clear
+    // On phones the panel sits under the map: bring the map (with the highlighted path) into
+    // view, with the top of the results just below it.
+    if (best && narrow.matches) {
+      el.closest(".canvas-wrap").scrollIntoView({ block: "start", behavior: reducedMotion.matches ? "auto" : "smooth" });
+    }
   });
+  // Keep Cytoscape's idea of the canvas size in sync with layout changes (toolbar wrapping,
+  // rotating a phone, the panel appearing below the map).
+  new ResizeObserver(() => cy.resize()).observe(el);
 
   document.body.addEventListener("graph-changed", (evt) => refresh(evt.detail && evt.detail.select));
   panel.addEventListener("click", (evt) => {
@@ -165,10 +202,12 @@
     openPanel(el.dataset.nodeUrl + m[1]);
     evt.target.value = "";
   });
-  document.getElementById("fit").addEventListener("click", () => cy.fit(undefined, 30));
+  document.getElementById("fit").addEventListener("click", () => { cy.resize(); cy.fit(undefined, 30); });
   document.getElementById("relayout").addEventListener("click", () => layout());
   window.matchMedia("(prefers-color-scheme: dark)")
     .addEventListener("change", () => cy.style(style()));
 
+  // Canvas labels need the web font loaded before first paint, or they stay in the fallback.
+  document.fonts.ready.then(() => cy.style(style()));
   refresh();
 })();

@@ -2,7 +2,7 @@
 
 import re
 
-from sixhops.core.model import INSTITUTIONS, GraphSnapshot, Node
+from sixhops.core.model import INSTITUTIONS, Edge, GraphSnapshot, Node
 from sixhops.core.ops import CreateEdge, CreateNode, ExistingRef, InvalidOps, NewRef, NodeRef, Op
 
 _ID_SUFFIX = re.compile(r"\(#(\w+)\)\s*$")
@@ -22,6 +22,21 @@ EDGE_TEXT = {
     "WORKED_AT": "worked at",
     "STUDIED_AT": "studied at",
 }
+
+
+_BACKWARD_TEXT = {
+    "WORKS_AT": "employs",
+    "WORKED_AT": "former employer of",
+    "STUDIED_AT": "alma mater of",
+}
+
+
+def edge_text(edge: Edge, from_id: str) -> str:
+    """How an edge reads starting from `from_id`: 'works at' from the person, 'employs' from
+    the company."""
+    if edge.kind != "KNOWS" and from_id == edge.dst:
+        return _BACKWARD_TEXT[edge.kind]
+    return EDGE_TEXT[edge.kind]
 
 
 def node_label(node: Node) -> str:

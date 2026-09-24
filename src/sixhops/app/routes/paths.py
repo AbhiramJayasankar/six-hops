@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from sixhops.app.routes.api import Graph
-from sixhops.app.services.manual import EDGE_TEXT, other_name, pick_node
+from sixhops.app.services.manual import edge_text, other_name, pick_node
 from sixhops.app.templating import templates
 from sixhops.core.model import INSTITUTIONS, Edge, GraphSnapshot, Node
 from sixhops.core.ops import InvalidOps
@@ -96,6 +96,7 @@ class Hop:
     edge: Edge
     to: Node
     kind_text: str
+    style: str  # "former" (WORKED_AT), "shared" (through an institution), or ""
 
 
 @dataclass(frozen=True)
@@ -112,8 +113,8 @@ def _views(g: GraphSnapshot, result: PathResult) -> list[PathView]:
     views = []
     for p in result.paths:
         hops = [
-            Hop(g.edges[e], g.nodes[n], _hop_text(g.edges[e], n))
-            for e, n in zip(p.edges, p.nodes[1:], strict=True)
+            Hop(g.edges[e], g.nodes[n], edge_text(g.edges[e], prev), _style(g, g.edges[e], p))
+            for e, prev, n in zip(p.edges, p.nodes, p.nodes[1:], strict=False)
         ]
         first = g.nodes[p.first_hop] if p.first_hop else None
         second = g.nodes[p.nodes[1]]
@@ -122,14 +123,11 @@ def _views(g: GraphSnapshot, result: PathResult) -> list[PathView]:
     return views
 
 
-_BACKWARD_TEXT = {"WORKS_AT": "employs", "WORKED_AT": "former employer of",
-                  "STUDIED_AT": "alma mater of"}  # fmt: skip
-
-
-def _hop_text(edge: Edge, to: str) -> str:
-    """Edge label in the direction of travel (institution hops walk *_AT edges backwards)."""
-    backward = edge.kind != "KNOWS" and edge.src == to
-    return _BACKWARD_TEXT[edge.kind] if backward else EDGE_TEXT[edge.kind]
+def _style(g: GraphSnapshot, edge: Edge, path: RankedPath) -> str:
+    target = path.nodes[-1]
+    if any(g.nodes[n].kind in INSTITUTIONS and n != target for n in (edge.src, edge.dst)):
+        return "shared"
+    return "former" if edge.kind == "WORKED_AT" else ""
 
 
 def _suggest(g: GraphSnapshot, text: str) -> list[Node]:
