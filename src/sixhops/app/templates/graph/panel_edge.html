@@ -1,0 +1,25 @@
+{% include "graph/_messages.html" %}
+<p><a href="#" hx-get="{{ root }}/ui/node/{{ src.id }}" hx-target="#panel" data-select-node="{{ src.id }}">← {{ src.name }}</a></p>
+<h2>{{ src.name }} <span class="edge-kind">{{ edge.kind|replace("_", " ")|lower }}</span> {{ dst.name }}</h2>
+<section class="card">
+  <form hx-post="{{ root }}/ui/edge/{{ edge.id }}" hx-target="#panel">
+    {% if edge.kind in ("WORKS_AT", "WORKED_AT") %}
+    <label>Type
+      <select name="kind">
+        <option value="WORKS_AT" {% if edge.kind == "WORKS_AT" %}selected{% endif %}>works at (current)</option>
+        <option value="WORKED_AT" {% if edge.kind == "WORKED_AT" %}selected{% endif %}>worked at (former)</option>
+      </select>
+    </label>
+    {% endif %}
+    <label>Strength (1 = barely, 5 = would do anything for me)
+      <select name="strength">{% for s in range(1, 6) %}<option {% if s == edge.strength %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    </label>
+    <label>Note <textarea name="note" rows="3">{{ edge.note }}</textarea></label>
+    <button type="submit">Save</button>
+  </form>
+  <form hx-post="{{ root }}/ui/edge/{{ edge.id }}/delete" hx-target="#panel" hx-confirm="Delete this connection? You can undo this.">
+    <input type="hidden" name="back" value="{{ src.id }}">
+    <button type="submit" class="danger">Delete connection</button>
+  </form>
+</section>
+<p class="muted small">Open <a href="#" hx-get="{{ root }}/ui/node/{{ dst.id }}" hx-target="#panel" data-select-node="{{ dst.id }}">{{ dst.name }}</a></p>

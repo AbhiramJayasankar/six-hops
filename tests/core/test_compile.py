@@ -122,3 +122,9 @@ def test_no_op_produces_no_mutations():
     g = graph(me(), person("p"))
     out = run(g, UpdateNode(node_id="p"))
     assert out.mutations == [] and out.inverse == []
+
+
+def test_update_node_can_replace_aliases():
+    g = graph(me(), person("p", "Priya", aliases=["P", "Pri"]))
+    out = run(g, UpdateNode(node_id="p", aliases=["Priya S"], add_aliases=["PS"]))
+    assert out.after.nodes["p"].aliases == ["Priya S", "PS"]

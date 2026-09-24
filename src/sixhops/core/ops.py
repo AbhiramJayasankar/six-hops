@@ -47,7 +47,8 @@ class UpdateNode(_Model):
     op: Literal["update_node"] = "update_node"
     node_id: str
     name: str | None = Field(default=None, min_length=1)
-    add_aliases: list[str] = []
+    aliases: list[str] | None = None  # replaces the alias list
+    add_aliases: list[str] = []  # appended (after `aliases`, if both are given)
     attrs: dict[str, str] = {}  # merged into existing attrs; "" removes a key
     notes: str | None = None
 

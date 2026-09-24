@@ -1,0 +1,3 @@
+{% for kind, labels in node_options.items() %}
+<datalist id="opts-{{ kind }}">{% for label in labels %}<option value="{{ label }}">{% endfor %}</datalist>
+{% endfor %}

@@ -1,0 +1,77 @@
+{% include "graph/_messages.html" %}
+{% include "graph/_datalists.html" %}
+<p><a href="#" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>← Overview</a></p>
+<h2><span class="badge kind-{{ node.kind }}">{{ node.kind }}</span> {{ node.name }}</h2>
+
+<section class="card">
+  <form hx-post="{{ root }}/ui/node/{{ node.id }}" hx-target="#panel">
+    <label>Name <input name="name" value="{{ node.name }}" required></label>
+    <label>Aliases (comma-separated) <input name="aliases" value="{{ node.aliases|join(', ') }}"></label>
+    {% for field in attr_fields %}
+    <label>{{ field|capitalize }} <input name="attr_{{ field }}" value="{{ node.attrs.get(field, '') }}"></label>
+    {% endfor %}
+    <label>Notes <textarea name="notes" rows="3">{{ node.notes }}</textarea></label>
+    <button type="submit">Save</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>Connections ({{ connections|length }})</h3>
+  {% if connections %}
+  <ul class="connections">
+    {% for edge, other in connections %}
+    <li>
+      <a href="#" hx-get="{{ root }}/ui/edge/{{ edge.id }}" hx-target="#panel" data-select-edge="{{ edge.id }}">
+        <span class="edge-kind">{{ edge.kind|replace("_", " ")|lower }}</span> {{ other.name }}
+      </a>
+      <span class="strength" title="strength {{ edge.strength }}/5">{{ "●" * edge.strength }}{{ "○" * (5 - edge.strength) }}</span>
+      {% if edge.note %}<div class="muted small">{{ edge.note }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">No connections yet.</p>{% endif %}
+
+  <h3>Add a connection</h3>
+  <form hx-post="{{ root }}/ui/node/{{ node.id }}/connect" hx-target="#panel">
+    <label>Type
+      <select name="kind" onchange="this.form.other.setAttribute('list', this.selectedOptions[0].dataset.list)">
+        {% if is_person %}
+        <option value="KNOWS" data-list="opts-person">knows (person)</option>
+        <option value="WORKS_AT" data-list="opts-company">works at (company)</option>
+        <option value="WORKED_AT" data-list="opts-company">worked at (company)</option>
+        <option value="STUDIED_AT" data-list="opts-school">studied at (school)</option>
+        {% else %}
+        {% if node.kind == "company" %}
+        <option value="WORKS_AT" data-list="opts-person">has current employee</option>
+        <option value="WORKED_AT" data-list="opts-person">has former employee</option>
+        {% else %}
+        <option value="STUDIED_AT" data-list="opts-person">has alum</option>
+        {% endif %}
+        {% endif %}
+      </select>
+    </label>
+    <label>Who / what <input name="other" list="opts-person" required autocomplete="off" placeholder="Pick from the list, or type a new name"></label>
+    <label>Strength
+      <select name="strength">{% for s in range(1, 6) %}<option {% if s == 3 %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    </label>
+    <label>Note <input name="note" placeholder="e.g. college roommate, ex-colleague at Flipkart"></label>
+    <button type="submit">Connect</button>
+  </form>
+</section>
+
+<details class="card">
+  <summary>Merge or delete</summary>
+  <form hx-post="{{ root }}/ui/node/{{ node.id }}/merge" hx-target="#panel"
+        hx-confirm="Merge that node into {{ node.name }}? Its connections move here. You can undo this.">
+    <label>Merge a duplicate into this node
+      <input name="other" list="opts-{{ 'person' if is_person else node.kind }}" required autocomplete="off">
+    </label>
+    <button type="submit" class="secondary">Merge into {{ node.name }}</button>
+  </form>
+  {% if node.kind != "me" %}
+  <form hx-post="{{ root }}/ui/node/{{ node.id }}/delete" hx-target="#panel"
+        hx-confirm="Delete {{ node.name }} and all its connections? You can undo this.">
+    <button type="submit" class="danger">Delete {{ node.name }}</button>
+  </form>
+  {% endif %}
+</details>

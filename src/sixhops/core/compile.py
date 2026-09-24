@@ -133,7 +133,7 @@ class _Working:
         self.nodes[node.id] = node.model_copy(
             update={
                 "name": name,
-                "aliases": _aliases(name, node.aliases, op.add_aliases),
+                "aliases": _aliases(name, _or(op.aliases, node.aliases), op.add_aliases),
                 "attrs": attrs,
             }
             | _given(notes=op.notes)
@@ -203,6 +203,10 @@ class _Working:
 
 def _given(**fields: object) -> dict[str, object]:
     return {k: v for k, v in fields.items() if v is not None}
+
+
+def _or(value, default):
+    return default if value is None else value
 
 
 def _aliases(name: str, current: list[str], extra: list[str]) -> list[str]:

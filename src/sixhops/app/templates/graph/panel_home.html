@@ -1,0 +1,48 @@
+{% include "graph/_messages.html" %}
+{% include "graph/_datalists.html" %}
+<h2>Your network</h2>
+<p class="muted">{{ counts.person }} {{ "person" if counts.person == 1 else "people" }} ·
+  {{ counts.company }} compan{{ "y" if counts.company == 1 else "ies" }} ·
+  {{ counts.school }} school{{ "" if counts.school == 1 else "s" }} ·
+  {{ g.edges|length }} connection{{ "" if g.edges|length == 1 else "s" }}</p>
+<p class="muted small">Click a node or connection to view and edit it.</p>
+
+<section class="card">
+  <h3>Add a node</h3>
+  <form hx-post="{{ root }}/ui/node" hx-target="#panel">
+    <label>Kind
+      <select name="kind">
+        <option value="person">Person</option>
+        <option value="company">Company</option>
+        <option value="school">School</option>
+      </select>
+    </label>
+    <label>Name <input name="name" required autocomplete="off"></label>
+    <label class="inline"><input type="checkbox" name="knows_me" value="true" checked> I know them (people only), strength
+      <select name="strength" class="narrow">{% for s in range(1, 6) %}<option {% if s == 3 %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    </label>
+    <button type="submit">Add</button>
+  </form>
+</section>
+
+<section class="card">
+  <h3>History</h3>
+  <form hx-post="{{ root }}/ui/undo" hx-target="#panel">
+    <button type="submit" class="secondary" {% if not history %}disabled{% endif %}>
+      Undo{% if history %}: {{ history[0].summary }}{% endif %}
+    </button>
+  </form>
+  {% if history %}
+  <ol class="history">{% for r in history %}<li><span>{{ r.summary }}</span> <time class="muted small">{{ r.created_at.strftime("%d %b %H:%M") }}</time></li>{% endfor %}</ol>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3>Import / export</h3>
+  <p><a href="{{ root }}/api/graph/export" download>Export graph as JSON</a></p>
+  <form hx-post="{{ root }}/ui/import" hx-target="#panel" hx-encoding="multipart/form-data"
+        hx-confirm="Replace the whole graph with this file? You can undo it afterwards.">
+    <label>Import JSON (replaces the graph) <input type="file" name="file" accept="application/json,.json" required></label>
+    <button type="submit" class="secondary">Import</button>
+  </form>
+</section>
