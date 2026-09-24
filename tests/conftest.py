@@ -1,10 +1,18 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
+from hypothesis import settings as hypothesis_settings
 
 from sixhops.app.config import Settings
 from sixhops.app.main import create_app
 
 PASSWORD = "test-password"
+
+# HYPOTHESIS_PROFILE=thorough for a long run before merging risky core changes.
+hypothesis_settings.register_profile("default", max_examples=40)
+hypothesis_settings.register_profile("thorough", max_examples=2000)
+hypothesis_settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 
 @pytest.fixture

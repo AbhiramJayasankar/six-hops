@@ -7,3 +7,4 @@ secrets/
 .pytest_cache/
 .ruff_cache/
 dist/
+.hypothesis/
