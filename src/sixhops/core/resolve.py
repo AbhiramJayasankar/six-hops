@@ -55,8 +55,15 @@ def normalize_url(url: str) -> str:
     return url.split("?")[0].split("#")[0].rstrip("/")
 
 
-def score(name: str, kind: str, attrs: dict[str, str], node: Node) -> tuple[float, str]:
-    """How likely it is that a mention (name, kind, attrs) is `node`, with the reason."""
+def score(
+    name: str,
+    kind: str,
+    attrs: dict[str, str],
+    node: Node,
+    names: list[tuple[str, list[str]]] | None = None,
+) -> tuple[float, str]:
+    """How likely it is that a mention (name, kind, attrs) is `node`, with the reason.
+    `names` is the node's precomputed (name, tokens) list; the Index passes it to save time."""
     for key, label, norm in (
         ("linkedin", "same LinkedIn profile", normalize_url),
         ("email", "same email", str.casefold),
@@ -68,9 +75,10 @@ def score(name: str, kind: str, attrs: dict[str, str], node: Node) -> tuple[floa
             if key == "linkedin":
                 return 0.0, "different LinkedIn profiles"
 
+    mine_tokens = tokens(name, kind)
     best = (0.0, "")
-    for i, other in enumerate([node.name, *node.aliases]):
-        s, why = _name_score(tokens(name, kind), tokens(other, node.kind), kind)
+    for i, (other, other_tokens) in enumerate(names or _names_of(node)):
+        s, why = _name_score(mine_tokens, other_tokens, kind)
         if i > 0 and s >= 0.97:
             s, why = 0.95, f"matches the alias {other!r}"
         elif why == "same name" and name.casefold().strip() != other.casefold().strip():
@@ -124,6 +132,61 @@ def _acronym_of(short: list[str], long: list[str]) -> bool:
     return False
 
 
+def _names_of(node: Node) -> list[tuple[str, list[str]]]:
+    return [(n, tokens(n, node.kind)) for n in [node.name, *node.aliases]]
+
+
+def _block_keys(toks: list[str]) -> set[str]:
+    """Cheap keys shared by any two names that could score above zero: a shared word, a shared
+    start or end of a word (for typos), or an acronym relationship (first word vs. initials
+    of the leading words). Checked against a full scan by a property test."""
+    if not toks:
+        return set()
+    keys = {f"w:{t}" for t in toks}  # a shared word
+    keys |= {f"t:{t[:2]}" for t in toks if len(t) >= 2}  # typo later in a word
+    keys |= {f"s:{t[-3:]}" for t in toks if len(t) >= 4}  # typo early in a word
+    if len(toks[0]) >= 2:
+        keys.add(f"a:{toks[0]}")
+    initials = "".join(t[0] for t in toks if t not in STOPWORDS)
+    keys |= {f"a:{initials[:k]}" for k in range(2, len(initials) + 1)}
+    return keys
+
+
+class Index:
+    """Blocking index over one snapshot, so resolving many mentions (a LinkedIn import) only
+    scores plausible nodes instead of every node in the graph."""
+
+    def __init__(self, g: GraphSnapshot):
+        self.g = g
+        self.names: dict[str, list[tuple[str, list[str]]]] = {}
+        self.blocks: dict[str, set[str]] = {}
+        self.identity: dict[tuple[str, str], set[str]] = {}
+        for node in g.nodes.values():
+            self.names[node.id] = _names_of(node)
+            for _, toks in self.names[node.id]:
+                for key in _block_keys(toks):
+                    self.blocks.setdefault(key, set()).add(node.id)
+            for key, value in _identity(node.attrs):
+                self.identity.setdefault((key, value), set()).add(node.id)
+
+    def nearby(self, name: str, kind: str, attrs: dict[str, str]) -> set[str]:
+        ids: set[str] = set()
+        for key in _block_keys(tokens(name, kind)):
+            ids |= self.blocks.get(key, set())
+        for pair in _identity(attrs):
+            ids |= self.identity.get(pair, set())
+        return ids
+
+
+def _identity(attrs: dict[str, str]) -> list[tuple[str, str]]:
+    pairs = []
+    if url := attrs.get("linkedin", "").strip():
+        pairs.append(("linkedin", normalize_url(url)))
+    if email := attrs.get("email", "").strip():
+        pairs.append(("email", email.casefold()))
+    return pairs
+
+
 def candidates(
     g: GraphSnapshot,
     name: str,
@@ -133,18 +196,21 @@ def candidates(
     context: frozenset[str] = frozenset(),
     exclude: frozenset[str] = frozenset(),
     limit: int = 5,
+    index: Index | None = None,
 ) -> list[Candidate]:
     """Existing nodes this mention could be, best first, scoring at least SUGGEST.
 
     `context` holds ids of nodes related to this mention in the same message (for example the
     company in "Priya is at Razorpay"); candidates connected to one of them get a small boost.
     """
+    index = index or Index(g)
     kinds = {"person", "me"} if kind in ("person", "me") else {kind}
     found = []
-    for node in g.nodes.values():
+    for node_id in index.nearby(name, kind, attrs or {}):
+        node = g.nodes[node_id]
         if node.kind not in kinds or node.id in exclude:
             continue
-        s, why = score(name, kind, attrs or {}, node)
+        s, why = score(name, kind, attrs or {}, node, index.names[node.id])
         if context and s >= SUGGEST - CONTEXT_BOOST and s < CONTEXT_CAP:
             neighbours = {e.dst if e.src == node.id else e.src for e in g.incident(node.id)}
             if shared := neighbours & context:
@@ -176,12 +242,16 @@ def find_duplicates(g: GraphSnapshot, threshold: float = SUGGEST) -> list[Duplic
     def rank(n: Node) -> tuple[bool, int, int]:
         return (n.kind == "me", degree[n.id], len(n.name))
 
-    nodes = sorted(g.nodes.values(), key=lambda n: n.id)
+    index = Index(g)
     pairs = []
-    for i, a in enumerate(nodes):
-        for b in nodes[i + 1 :]:
+    for a in sorted(g.nodes.values(), key=lambda n: n.id):
+        nearby = set()
+        for name in [a.name, *a.aliases]:
+            nearby |= index.nearby(name, a.kind, a.attrs)
+        for b_id in sorted(n for n in nearby if n > a.id):  # each pair once
+            b = g.nodes[b_id]
             same_kind = a.kind == b.kind or {a.kind, b.kind} == {"me", "person"}
-            if not same_kind or a.kind == b.kind == "me":
+            if not same_kind:
                 continue
             s, why = max(score(a.name, a.kind, a.attrs, b), score(b.name, b.kind, b.attrs, a))
             if s >= threshold:

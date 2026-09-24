@@ -112,3 +112,32 @@ def test_find_duplicates_never_drops_me():
     g = graph(me(name="Abhiram"), person("p", "Abhiram"))
     (d,) = find_duplicates(g)
     assert (d.keep_id, d.drop_id) == ("me", "p")
+
+
+# --- property: the blocking index never hides a match that a full scan would find -----------
+
+from hypothesis import given  # noqa: E402
+from hypothesis import strategies as st  # noqa: E402
+
+WORDS = ["priya", "sharma", "s", "rahul", "raul", "iit", "indian", "institute", "of",
+         "technology", "madras", "razorpay", "pvt", "ltd", "flipkart", "flipcart", "dr",
+         "anita"]  # fmt: skip
+names = st.lists(st.sampled_from(WORDS), min_size=1, max_size=5).map(" ".join)
+kinds = st.sampled_from(["person", "company", "school"])
+
+
+@given(st.lists(st.tuples(kinds, names), min_size=1, max_size=12), kinds, names)
+def test_index_finds_everything_a_full_scan_finds(existing, kind, name):
+    from sixhops.core.model import GraphSnapshot
+
+    nodes = {"me": Node(id="me", kind="me", name="Abhiram")}
+    for i, (k, n) in enumerate(existing):
+        nodes[f"n{i}"] = Node(id=f"n{i}", kind=k, name=n)
+    g = GraphSnapshot(nodes=nodes)
+    allowed = {"person", "me"} if kind == "person" else {kind}
+    full = {
+        node.id
+        for node in g.nodes.values()
+        if node.kind in allowed and score(name, kind, {}, node)[0] >= SUGGEST
+    }
+    assert {c.node_id for c in candidates(g, name, kind, limit=100)} == full

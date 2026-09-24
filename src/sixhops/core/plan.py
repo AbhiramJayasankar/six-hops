@@ -24,7 +24,7 @@ from sixhops.core.ops import (
     UpdateEdge,
     UpdateNode,
 )
-from sixhops.core.resolve import AUTO_LINK, Candidate, candidates, tokens
+from sixhops.core.resolve import AUTO_LINK, Candidate, Index, candidates, tokens
 
 NEW = "new"
 EMPLOYMENT = {"WORKS_AT", "WORKED_AT"}
@@ -77,7 +77,8 @@ def plan(
 
     # 1. Resolve mentions. A first pass finds candidates by name; the second pass boosts
     #    candidates connected to something else mentioned alongside them.
-    first = {k: candidates(g, m.name, m.kind, m.attrs) for k, m in mentions.items()}
+    index = Index(g)
+    first = {k: candidates(g, m.name, m.kind, m.attrs, index=index) for k, m in mentions.items()}
     context: dict[str, set[str]] = {k: set() for k in mentions}
     for r in relations:
         for a, b in ((r.src, r.dst), (r.dst, r.src)):
@@ -87,7 +88,7 @@ def plan(
     target: dict[str, str | None] = {}  # mention key -> existing node id, or None for new
     resolutions: list[Resolution] = []
     for key, m in mentions.items():
-        found = candidates(g, m.name, m.kind, m.attrs, context=frozenset(context[key]))
+        found = candidates(g, m.name, m.kind, m.attrs, context=frozenset(context[key]), index=index)
         choice, auto = _decide(g, m, found, (decisions or {}).get(key), warnings)
         target[key] = choice
         if found:
