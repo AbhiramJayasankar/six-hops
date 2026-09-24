@@ -1,0 +1,27 @@
+{% include "graph/_messages.html" %}
+<a href="#" class="back" hx-get="{{ root }}/ui/node/{{ src.id }}" hx-target="#panel" data-select-node="{{ src.id }}">Back to {{ src.name }}</a>
+<section>
+  <h2>{{ src.name }} <span class="muted">{{ edge_text(edge, src.id) }}</span> {{ dst.name }}</h2>
+  <form hx-post="{{ root }}/ui/edge/{{ edge.id }}" hx-target="#panel">
+    {% if edge.kind in ("WORKS_AT", "WORKED_AT") %}
+    <label>Employment
+      <select name="kind">
+        <option value="WORKS_AT" {% if edge.kind == "WORKS_AT" %}selected{% endif %}>Works there now</option>
+        <option value="WORKED_AT" {% if edge.kind == "WORKED_AT" %}selected{% endif %}>Worked there before</option>
+      </select>
+    </label>
+    {% endif %}
+    <label>Strength, from 1 (barely) to 5 (would go out of their way for you)
+      <select name="strength">{% for s in range(1, 6) %}<option {% if s == edge.strength %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    </label>
+    <label>Note <textarea name="note" rows="3">{{ edge.note }}</textarea></label>
+    <button type="submit">Save changes</button>
+  </form>
+</section>
+<section>
+  <p>Open <a href="#" hx-get="{{ root }}/ui/node/{{ dst.id }}" hx-target="#panel" data-select-node="{{ dst.id }}">{{ dst.name }}</a></p>
+  <form hx-post="{{ root }}/ui/edge/{{ edge.id }}/delete" hx-target="#panel" hx-confirm="Remove this connection? You can undo this.">
+    <input type="hidden" name="back" value="{{ src.id }}">
+    <button type="submit" class="danger">Remove connection</button>
+  </form>
+</section>

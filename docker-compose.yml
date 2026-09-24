@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/6hops.db}
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - ./data:/data
+      # Vertex AI via service account: put the key at ./secrets/gcp.json and set
+      # GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp.json in .env
+      - ./secrets:/secrets:ro

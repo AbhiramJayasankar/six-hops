@@ -1,0 +1,18 @@
+{% include "graph/_messages.html" %}
+<a href="#" class="back" hx-get="{{ root }}/ui/panel" hx-target="#panel" data-deselect>Back to overview</a>
+<section>
+  <h2>Import LinkedIn connections</h2>
+  <p>Add everyone you're connected to on LinkedIn, with their current company and title. You'll review every change before anything is saved, and importing the same file again changes nothing.</p>
+  <ol class="steps-list small">
+    <li>On LinkedIn, open Settings, then Data privacy, then Get a copy of your data.</li>
+    <li>Choose Connections and request the archive. LinkedIn emails you a link, usually within minutes.</li>
+    <li>Unzip it and upload <code>Connections.csv</code> here.</li>
+  </ol>
+  <form hx-post="{{ root }}/ui/import/linkedin" hx-target="#panel" hx-encoding="multipart/form-data"
+        hx-indicator="#linkedin-busy">
+    <label>Connections.csv <input type="file" name="file" accept=".csv,text/csv" required></label>
+    <button type="submit">Review changes</button>
+    <span id="linkedin-busy" class="htmx-indicator muted small">Matching against your graph…</span>
+  </form>
+  <p class="muted small">New connections start at strength 2. Strengths and notes you've already set are never changed by an import.</p>
+</section>

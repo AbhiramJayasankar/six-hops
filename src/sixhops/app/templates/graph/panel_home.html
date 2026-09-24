@@ -1,0 +1,56 @@
+{% include "graph/_messages.html" %}
+{% include "graph/_datalists.html" %}
+{% include "graph/_dupe_check.html" %}
+<section>
+  <h2>Your network</h2>
+  {% set n_people, n_companies, n_schools, n_edges = counts.person, counts.company, counts.school, g.edges|length %}
+  <p class="summary-line num">{{ n_people }} {{ "person" if n_people == 1 else "people" }}, {{ n_companies }} compan{{ "y" if n_companies == 1 else "ies" }} and {{ n_schools }} school{{ "" if n_schools == 1 else "s" }}, with {{ n_edges }} connection{{ "" if n_edges == 1 else "s" }}.
+    {% if n_edges %}Select anything on the map to see or edit it.{% endif %}</p>
+  {% if n_people + n_companies + n_schools > 1 %}<p class="small"><a href="#" hx-get="{{ root }}/ui/duplicates" hx-target="#panel">Check for duplicates</a></p>{% endif %}
+</section>
+
+<section>
+  <h3>Add someone or somewhere</h3>
+  <form hx-post="{{ root }}/ui/node" hx-target="#panel">
+    <div class="row">
+      <label class="narrow">Type
+        <select name="kind">
+          <option value="person">Person</option>
+          <option value="company">Company</option>
+          <option value="school">School</option>
+        </select>
+      </label>
+      <label>Name <input name="name" required autocomplete="off"></label>
+    </div>
+    <div class="row inline">
+      <label class="check"><input type="checkbox" name="knows_me" value="true" checked>I know them (people only)</label>
+      <label class="inline-select">Strength
+        <select name="strength">{% for s in range(1, 6) %}<option {% if s == 3 %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+      </label>
+    </div>
+    <button type="submit">Add</button>
+  </form>
+</section>
+
+<section>
+  <h3>Recent changes</h3>
+  {% if history %}
+  <form hx-post="{{ root }}/ui/undo" hx-target="#panel">
+    <button type="submit" class="secondary">Undo "{{ history[0].summary }}"</button>
+  </form>
+  <ol class="history">{% for r in history %}<li><span>{{ r.summary }}</span><time datetime="{{ r.created_at.isoformat() }}">{{ r.created_at.strftime("%-d %b, %H:%M") }}</time></li>{% endfor %}</ol>
+  {% else %}
+  <p class="muted">Changes you make show up here, and you can undo them.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h3>Import and export</h3>
+  <p><a href="#" hx-get="{{ root }}/ui/import/linkedin" hx-target="#panel">Import your LinkedIn connections</a></p>
+  <p><a href="{{ root }}/api/graph/export" download>Download the graph as JSON</a></p>
+  <form hx-post="{{ root }}/ui/import" hx-target="#panel" hx-encoding="multipart/form-data"
+        hx-confirm="Replace your whole graph with this file? You can undo it afterwards.">
+    <label>Replace the graph from a JSON file <input type="file" name="file" accept="application/json,.json" required></label>
+    <button type="submit" class="secondary">Import</button>
+  </form>
+</section>

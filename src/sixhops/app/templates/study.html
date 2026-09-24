@@ -1,0 +1,21 @@
+{% extends "_stub.html" %}
+{% block title %}Study · 6hops{% endblock %}
+{% block heading %}Study{% endblock %}
+{% block lead %}Track DSA and interview prep, and what to revisit next.{% endblock %}
+{% block todo %}
+<ul class="planned">
+  <li>TODO: topics and problems with a status (to do, attempted, solved, revisit), difficulty and link.</li>
+  <li>TODO: a spaced-repetition queue of problems to revisit.</li>
+  <li>TODO: streak and progress per topic.</li>
+  <li>TODO: optionally tie prep to target companies in the graph.</li>
+</ul>
+{% endblock %}
+{% block placeholder %}
+<section class="preview" aria-disabled="true">
+  <h2>Preview</h2>
+  <table>
+    <thead><tr><th>Topic</th><th class="num">Solved</th><th class="num">To revisit</th></tr></thead>
+    <tbody><tr><td colspan="3" class="muted">Topics appear here once you start tracking.</td></tr></tbody>
+  </table>
+</section>
+{% endblock %}

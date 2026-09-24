@@ -1,0 +1,9 @@
+Notes:
+"When exporting your connection data, you may notice that some of the email addresses are missing. You will only see email addresses for connections who have allowed their connections to see or download their email address using this setting https://www.linkedin.com/psettings/privacy/email. You can learn more here https://www.linkedin.com/help/linkedin/answer/261"
+
+First Name,Last Name,URL,Email Address,Company,Position,Connected On
+Priya,Sharma,https://www.linkedin.com/in/priya-sharma-1,,Razorpay,Software Engineer II,12 Mar 2021
+Rahul,Iyer,https://www.linkedin.com/in/rahul-iyer,rahul@example.com,Flipkart,Senior SDE,05 Jan 2020
+Priya,Sharma,https://www.linkedin.com/in/priya-sharma-2,,"Razorpay Software Pvt Ltd",Product Manager,01 Feb 2022
+Anita,Rao,https://www.linkedin.com/in/anita-rao,,,,20 Jul 2019
+,,,,,,01 Jan 2023
