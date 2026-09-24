@@ -6,8 +6,9 @@ pages hang off that graph.
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the full v1 plan and milestones.
 
-**Status:** M0–M4 done (skeleton, core, SQLite store with undo, graph UI, path queries).
-Next: M5 entity resolution, M6 LinkedIn import, M7 LLM chat. Jobs, Cold Email and Study are stubs.
+**Status:** M0–M6 done: skeleton, core, SQLite store with undo, graph UI, path queries,
+entity resolution with duplicate checks, and LinkedIn import. Next: M7 LLM chat (Gemini),
+M8 other LLM adapters. Jobs, Cold email and Study are stubs.
 
 ## Using the graph page
 
@@ -18,6 +19,14 @@ Next: M5 entity resolution, M6 LinkedIn import, M7 LLM chat. Jobs, Cold Email an
   strongest and shortest paths from you (up to 4 hops; *Show longer paths* goes to 6), who to
   ask first, and the path highlighted on the graph. Tick *via shared employers/schools* to
   count a shared company or school as a weak tie.
+- **Duplicates**: adding or connecting to a name that looks like someone already in the graph
+  asks first ("Is Priya already in your graph?"). *Check for duplicates* on the overview lists
+  likely duplicate pairs with one-click merges.
+- **Import LinkedIn connections** from the overview: upload `Connections.csv` from LinkedIn's
+  data export. You review every change first (matches to existing people, new people and
+  companies, job changes), can switch or untick anything, then apply it as one undoable change.
+  New connections start at strength 2; strengths and notes you've set are never changed by an
+  import, and importing the same file again changes nothing.
 - **Import/export** the whole graph as JSON from the Overview panel. Import replaces the graph
   and can be undone.
 
@@ -31,7 +40,9 @@ school, when enabled, is a weak tie worth 0.3. "Strongest" ranks by score; "shor
 ## Known issues
 
 - The map layout can put labels on top of each other in dense areas. *Tidy layout* re-runs it,
-  and you can drag nodes; positions are remembered per browser.
+  and you can drag nodes; positions are remembered per browser. Above 250 nodes the map uses
+  rings by distance from you instead of a force layout (which takes most of a minute at that
+  size); it's readable zoomed in, but a big network is still a big picture.
 - Pickers use the browser's built-in suggestion list, which gets unwieldy with thousands of
   nodes (after a large LinkedIn import).
 - Fixed in the UI polish pass: on phones, finding paths zoomed the map out to a small cluster
@@ -79,6 +90,10 @@ Interactive docs at `/api/docs`.
 | GET | `/api/graph/export` | Download the graph as JSON |
 | POST | `/api/graph/import` | Replace the graph from a JSON file (multipart `file`) |
 | GET | `/api/paths?target=<company id>&max_hops=4&via_institutions=false` | Ranked paths |
+| POST | `/api/import/linkedin` | Propose a change from `Connections.csv` (multipart `file`) |
+| GET | `/api/changes/{id}` | A proposed change, with its ops and match choices |
+| POST | `/api/changes/{id}/replan` | Change matches: `{"<mention key>": "<node id>" or "new"}` |
+| POST | `/api/changes/{id}/apply` | Apply it, optionally `{"excluded": [op indices]}` |
 
 ## Environment variables
 
@@ -103,10 +118,10 @@ Interactive docs at `/api/docs`.
 
 ```
 src/sixhops/
-  core/       pure domain logic: model, ops, validation, compile (+undo), paths
-              (entity resolution and planning arrive in M5)
+  core/       pure domain logic: model, ops, validation, compile (+undo), paths,
+              extraction schema, entity resolution, planning
   ports/      small Protocol interfaces: LLMProvider, GraphStore, JobSource
-  adapters/   implementations of the ports (SQLite store, Gemini, ...)
+  adapters/   implementations of the ports (SQLite store, Gemini, ...) and importers (LinkedIn)
   app/        FastAPI routes, templates (Jinja2 + HTMX), static assets, wiring
 ```
 

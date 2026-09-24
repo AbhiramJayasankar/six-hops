@@ -34,11 +34,12 @@ six-hops/
   src/sixhops/
     core/                 # PURE: no I/O, no framework imports.
       model.py            # Node, Edge, enums, GraphSnapshot
-      ops.py              # Op union, ChangeSet, Mutation, Extraction
+      ops.py              # Op union, Mutation
+      extraction.py       # Extraction: what the LLM and importers produce
       validate.py         # validate ops / snapshots
       compile.py          # ops -> primitive mutations (incl. merge lowering) + inverse
       resolve.py          # entity resolution / duplicate candidates
-      plan.py             # Extraction + snapshot + decisions -> ChangeSet
+      plan.py             # Extraction + snapshot + decisions -> ChangeSet (+ Resolution)
       paths.py            # path ranking
     ports/                # Protocols only.
       llm.py  graph_store.py  job_source.py
@@ -215,11 +216,15 @@ that record's `version_after`, and pops it. Repeated undos walk back through his
 | M2 | SQLite `GraphStore` (commit, history, undo), store contract tests, Me bootstrap, JSON import/export | Export/import/undo via curl |
 | M3 | Graph UI: Cytoscape view, click-to-edit panel, manual CRUD + merge via ops, undo button, import/export buttons | Usable graph app, no LLM |
 | M4 | `core/paths.py` + tests, "Reach company" control, 4-hop default + expand, institution toggle, highlight on graph | Path queries in the UI |
-| **Pause** | **Owner review before M5** | |
+| **Pause** | **Owner review before M5** (done) | |
 | M5 | `core/resolve.py`, `core/plan.py` + tests; duplicate warnings in manual create; "find duplicates" | Deterministic merge proposals |
 | M6 | LinkedIn `Connections.csv` import -> Extraction -> plan/resolve -> normal ChangeSet diff + confirm; idempotent re-import | Import LinkedIn export |
+| **Pause** | **Owner review before M7** | |
 | M7 | `LLMProvider`, `StructuredLLMBase`, Gemini (Vertex + API key), `FakeLLM`; chat pane, diff card, replan, confirm, path intent; e2e test | Full chat workflow |
 | M8 | Claude and OpenAI-compatible skeletons, README complete, session summary | Docs complete |
+
+**Status (end of session 2):** M0–M6 done, plus hypothesis property tests for compile/undo
+and planning, and a UI polish pass (see `docs/DESIGN.md`). Pause for review before M7.
 
 **Ordering note.** LinkedIn import was requested "after M3", but it has to run through
 `plan`/`resolve`, which land in M5. It is therefore placed directly after M5 (as M6), and the
@@ -235,7 +240,11 @@ pause after M4 (paths) is unchanged.
 - Import planning never overwrites manually edited strength/notes on existing edges; identical
   edges produce no op. **Re-importing the same file yields an empty ChangeSet.** A changed
   Company proposes WORKS_AT -> WORKED_AT for the old employer.
-- Large imports: the diff card groups ops by type with counts and paginates.
+- Large imports: the diff card groups ops by type with counts and lists up to 200 per group
+  (the rest stay included).
+- Proposed changes live in a `pending_changes` table through `ChangeSetService`
+  (`app/services/changesets.py`). That is app state, deliberately not part of the
+  `GraphStore` port. Chat (M7) reuses the same service and review screen.
 
 ### End-to-end test (M7)
 
